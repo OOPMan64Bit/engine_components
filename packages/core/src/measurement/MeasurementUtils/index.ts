@@ -2,6 +2,7 @@ import * as THREE from "three";
 import * as FRAGS from "@thatopen/fragments";
 import { Component, Components } from "../../core";
 import { FragmentsManager } from "../../fragments";
+import convert from "convert-units"; // Import the convert-units module
 
 /**
  * Represents an edge measurement result.
@@ -482,5 +483,31 @@ export class MeasurementUtils extends Component {
     const v213 = p2.x * p1.y * p3.z;
     const v123 = p1.x * p2.y * p3.z;
     return (1.0 / 6.0) * (-v321 + v231 + v312 - v132 - v213 + v123);
+  }
+
+  /**
+   * Converts a value from one unit to another for length, area, or volume with precision.
+   *
+   * @param value - The value to convert.
+   * @param fromUnit - The unit of the input value (e.g., "m" for meters, "m2" for square meters, "m3" for cubic meters).
+   * @param toUnit - The unit to convert to (e.g., "cm" for centimeters, "cm2" for square centimeters, "cm3" for cubic centimeters).
+   * ref: convert.Unit
+   * @param precision - The number of decimal places to round the result to (default is 2).
+   * @returns The converted value rounded to the specified precision.
+   */
+  convertUnits(
+    value: number,
+    fromUnit: convert.Unit,
+    toUnit: convert.Unit,
+    precision = 2,
+  ): number {
+    try {
+      const convertedValue = convert(value).from(fromUnit).to(toUnit);
+      const factor = 10 ** precision; // Use ** operator for precision
+      return Math.round(convertedValue * factor) / factor; // Apply precision
+    } catch (error) {
+      console.error("Error converting units:", error);
+      throw new Error("Invalid unit conversion");
+    }
   }
 }
