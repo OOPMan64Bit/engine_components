@@ -45,8 +45,9 @@ export class LengthMeasurement
 
   private _vertexPicker: GraphicVertexPicker;
 
-  private _lineMaterial = new THREE.LineBasicMaterial({
-    color: "#DC2626",
+  private _lineMaterialNormal = new THREE.LineBasicMaterial({
+    // color: "#DC2626",
+    color: "#0000FF",
     linewidth: 2,
     depthTest: false,
   });
@@ -109,7 +110,7 @@ export class LengthMeasurement
    *
    */
   get color() {
-    return this._lineMaterial.color;
+    return this._lineMaterialNormal.color;
   }
 
   /**
@@ -118,7 +119,25 @@ export class LengthMeasurement
    *
    */
   set color(color: THREE.Color) {
-    this._lineMaterial.color = color;
+    // Validate that the color is an instance of THREE.Color
+    if (!(color instanceof THREE.Color)) {
+      throw new Error(
+        "Invalid color type. Expected an instance of THREE.Color.",
+      );
+    }
+
+    // Update the line material color
+    this._lineMaterialNormal.color = color;
+
+    // Convert the color to a hex string
+    const strColor = `#${color.getHexString()}`;
+
+    // Update the color of all dimension lines in the list
+    this.list.forEach((item) => {
+      if (item && !item.isSelected) {
+        item.setColors(strColor); // Pass the hex string to setColors
+      }
+    });
   }
 
   constructor(components: OBC.Components) {
@@ -138,7 +157,7 @@ export class LengthMeasurement
     for (const measure of this.list) {
       measure.dispose();
     }
-    this._lineMaterial.dispose();
+    this._lineMaterialNormal.dispose();
     this.list = [];
     this._vertexPicker.dispose();
     this.onDisposed.trigger(LengthMeasurement.uuid);
@@ -297,7 +316,7 @@ export class LengthMeasurement
       {
         start: this._temp.start,
         end: this._temp.end,
-        lineMaterial: this._lineMaterial, // ?
+        lineMaterial: this._lineMaterialNormal, // ?
         endpointElement: newDimensionMark(), // Stronger-issue(update)
       },
       this.rounding,
@@ -426,6 +445,33 @@ export class LengthMeasurement
     // Update the rounding for all dimension lines
     this.list.forEach((dimension) => {
       dimension.setRounding(newRounding);
+    });
+  }
+
+  /**
+   * Sets the color of the dimension lines and updates all associated elements.
+   *
+   * @param color - The new color to apply to the dimension lines. Must be a THREE.Color instance.
+   */
+  setColor(color: THREE.Color): void {
+    // Validate that the color is an instance of THREE.Color
+    if (!(color instanceof THREE.Color)) {
+      throw new Error(
+        "Invalid color type. Expected an instance of THREE.Color.",
+      );
+    }
+
+    // Update the line material color
+    this._lineMaterialNormal.color = color;
+
+    // Convert the color to a hex string
+    const strColor = `#${color.getHexString()}`;
+
+    // Update the color of all dimension lines in the list
+    this.list.forEach((item) => {
+      if (item && !item.isSelected) {
+        item.setColors(strColor); // Pass the hex string to setColors
+      }
     });
   }
 }

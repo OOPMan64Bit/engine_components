@@ -156,9 +156,10 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
         </bim-checkbox>  
         
         <bim-color-input 
-          label="Dimensions Color" color="#202932" 
+          label="Dimensions Color" color="#0000ff" 
           @input="${({ target }: { target: BUI.ColorInput }) => {
-            dimensions.color.set(target.color);
+            // dimensions.color.set(target.color);
+            dimensions.setColor(new THREE.Color(target.color));
           }}">
         </bim-color-input>
         
@@ -199,9 +200,9 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
           @change="${({ target }: { target: BUI.Dropdown }) => {
             dimensions.changeRounding(target.value[0]);
           }}">
-          <bim-option label="0" value=0 checked></bim-option>
+          <bim-option label="0" value=0></bim-option>
           <bim-option label="1" value=1></bim-option>
-          <bim-option label="2" value=2></bim-option>
+          <bim-option label="2" value=2 checked></bim-option>
           <bim-option label="3" value=3></bim-option>
           <bim-option label="4" value=4></bim-option>
           <bim-option label="5" value=5></bim-option>

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import { Mark } from "../../core";
-import { newDimensionMark } from "../utils";
+import { newDimensionMark, newEndPoint } from "../utils";
 import convert from "convert-units";
 
 /**
@@ -21,7 +21,7 @@ export interface DimensionData {
   /**
    * The material to be used for the line of the dimension.
    */
-  lineMaterial: THREE.Material;
+  lineMaterial: THREE.LineBasicMaterial;
 
   /**
    * The HTML element to be used as the endpoint marker for the dimension line.
@@ -149,6 +149,12 @@ export class SimpleDimensionLine {
   private readonly _line: THREE.Line;
 
   /**
+   * Updates the dimension line's appearance based on its state.
+   * @param {boolean} isSelected - Whether the dimension line is selected.
+   */
+  isSelected: boolean = false;
+
+  /**
    * Getter for the visibility of the dimension line.
    * @returns {boolean} The current visibility state.
    */
@@ -253,10 +259,26 @@ export class SimpleDimensionLine {
     this._length = this.getLength();
     this._line = this.createLine(data);
 
-    this.newEndpointElement(data.endpointElement);
+    this.newEndpointElement(newEndPoint());
     // @ts-ignore
-    this.newEndpointElement(data.endpointElement.cloneNode(true));
+    this.newEndpointElement(newEndPoint());
+
+    // Update the color of each endpoint (mark)
+    this._endpoints.forEach((endpoint) => {
+      if (endpoint.three && endpoint.three.element.style.backgroundColor) {
+        endpoint.three.element.style.borderColor = `#${data.lineMaterial.color.getHexString()}`;
+        endpoint.three.element.style.color = `#${data.lineMaterial.color.getHexString()}`;
+        // endpoint.three.layers.set(1);
+        endpoint.three.renderOrder = 0;
+      }
+    });
+
     this.label = this.newText();
+    this.label.three.element.style.backgroundColor = `#${data.lineMaterial.color.getHexString()}`;
+    // this.label.three.layers.set(2);
+    this.label.three.renderOrder = 1;
+
+    // this._root.layers.enableAll();
     this._root.renderOrder = 2;
     this.world.scene.three.add(this._root);
 
@@ -357,5 +379,33 @@ export class SimpleDimensionLine {
 
   private getLength() {
     return this._start.distanceTo(this._end);
+  }
+
+  /**
+   * Changes the color of the label and the marks (endpoints) of the dimension line.
+   *
+   * @param color - The new color to apply to the label and marks. ex: "#92a8d1"
+   */
+  setColors(color: string): void {
+    // Validate if the color is a valid hex string
+    const hexColorRegex = /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/;
+    if (!hexColorRegex.test(color)) {
+      throw new Error(
+        `Invalid color format: ${color}. Must be a valid hex string (e.g., "#92a8d1").`,
+      );
+    }
+
+    // Update the label's color
+    if (this.label && this.label.three) {
+      this.label.three.element.style.backgroundColor = color; // ex: background-color: #92a8d1
+    }
+
+    // Update the color of each endpoint (mark)
+    this._endpoints.forEach((endpoint) => {
+      if (endpoint.three && endpoint.three.element.style.backgroundColor) {
+        endpoint.three.element.style.borderColor = color;
+        endpoint.three.element.style.color = color;
+      }
+    });
   }
 }
