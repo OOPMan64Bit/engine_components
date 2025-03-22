@@ -2,6 +2,7 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import { Mark } from "../../core";
 import { newDimensionMark } from "../utils";
+import convert from "convert-units";
 
 /**
  * Interface representing the data required to create a dimension line.
@@ -62,12 +63,76 @@ export class SimpleDimensionLine {
   /**
    * The units used for the dimension line.
    */
-  static units = "m";
+  private units: convert.Distance = "m";
+
+  /**
+   * Getter for the units of the dimension line.
+   * @returns {convert.Distance} The current units.
+   */
+  getUnits(): convert.Distance {
+    return this.units;
+  }
+
+  /**
+   * Setter for the units of the dimension line.
+   * Updates the units and refreshes the label.
+   * @param {convert.Distance} newUnits - The new units for the dimension line.
+   */
+  setUnits(newUnits: convert.Distance): void {
+    this.units = newUnits;
+    this.updateLabel();
+  }
 
   /**
    * The number of decimals to show in the label.
    */
-  static rounding = 2;
+  private rounding = 2;
+
+  /**
+   * Getter for the rounding precision of the dimension line.
+   * @returns {number} The current rounding precision.
+   */
+  getRounding(): number {
+    return this.rounding;
+  }
+
+  /**
+   * Setter for the rounding precision of the dimension line.
+   * Updates the rounding precision and refreshes the label.
+   * @param {number} newRounding - The new rounding precision.
+   */
+  setRounding(newRounding: number): void {
+    this.rounding = newRounding;
+    this.updateLabel();
+  }
+
+  /**
+   * A static array to keep track of all instances of SimpleDimensionLine.
+   */
+  private static instances: SimpleDimensionLine[] = [];
+
+  /**
+   * The unit of the input data (current world unit).
+   */
+  private static _worldUnit: convert.Distance = "m"; // Default to meters
+
+  /**
+   * Getter for the input unit of the dimension line.
+   * @returns {string} The current input unit.
+   */
+  static get worldUnit(): string {
+    return SimpleDimensionLine._worldUnit;
+  }
+
+  /**
+   * Setter for the input unit of the dimension line.
+   * @param {string} unit - The new input unit (e.g., "m", "cm", "mm") convert-units module type Distance.
+   */
+  static set worldUnit(unit: convert.Distance) {
+    SimpleDimensionLine._worldUnit = unit;
+    // Call updateLabel for all instances
+    SimpleDimensionLine.instances.forEach((instance) => instance.updateLabel());
+  }
 
   private _length: number;
 
@@ -189,6 +254,9 @@ export class SimpleDimensionLine {
     this.label = this.newText();
     this._root.renderOrder = 2;
     this.world.scene.three.add(this._root);
+
+    // Add this instance to the static instances array
+    SimpleDimensionLine.instances.push(this);
   }
 
   /**
@@ -269,9 +337,17 @@ export class SimpleDimensionLine {
   }
 
   private getTextContent() {
-    const calcedValue = this._length / SimpleDimensionLine.scale;
-    const roundedValue = calcedValue.toFixed(SimpleDimensionLine.rounding);
-    return `${roundedValue} ${SimpleDimensionLine.units}`;
+    // Convert the length from the world unit to the display unit
+    const utils = this.components.get(OBC.MeasurementUtils);
+    const convertedValue = utils.convertUnits(
+      this._length / SimpleDimensionLine.scale,
+      SimpleDimensionLine._worldUnit, // Input unit (world unit)
+      this.units, // Output unit (display unit)
+      this.rounding, // Precision
+    );
+
+    // Format the converted value with the display unit
+    return `${convertedValue} ${this.units}`;
   }
 
   private getLength() {

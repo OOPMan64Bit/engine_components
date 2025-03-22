@@ -31,6 +31,7 @@
   ],
   "devDependencies": {
     "@rollup/plugin-terser": "^0.4.4",
+    "@types/convert-units": "^2.3.11",
     "@types/node": "latest",
     "@typescript-eslint/eslint-plugin": "7.2.0",
     "@typescript-eslint/parser": "7.2.0",
@@ -47,6 +48,7 @@
   },
   "version": "2.4.0",
   "dependencies": {
-    "camera-controls": "^2.9.0"
+    "camera-controls": "^2.9.0",
+    "convert-units": "^2.3.4"
   }
 }
