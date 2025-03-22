@@ -239,9 +239,14 @@ export class SimpleDimensionLine {
     components: OBC.Components,
     world: OBC.World,
     data: DimensionData,
+    rounding: number = 2, // Default rounding precision
+    units: convert.Distance = "m", // Default display unit
   ) {
     this.components = components;
     this.world = world;
+
+    this.rounding = rounding; // Initialize rounding
+    this.units = units; // Initialize units
 
     this._start = data.start;
     this._end = data.end;

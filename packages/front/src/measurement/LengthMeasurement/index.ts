@@ -3,6 +3,7 @@ import * as OBC from "@thatopen/components";
 import { SimpleDimensionLine } from "../SimpleDimensionLine";
 import { newDimensionMark } from "../utils";
 import { GraphicVertexPicker } from "../../utils";
+import convert from "convert-units";
 
 /**
  * A basic dimension tool to measure distances between 2 points in 3D and display a 3D symbol displaying the numeric value. 📕 [Tutorial](https://docs.thatopen.com/Tutorials/Components/Front/LengthMeasurement). 📘 [API](https://docs.thatopen.com/api/@thatopen/components-front/classes/LengthMeasurement).
@@ -53,6 +54,18 @@ export class LengthMeasurement
   private _visible = true;
 
   private _enabled = false;
+
+  /**
+   * The rounding precision for all dimension lines.
+   * Determines the number of decimal places to display.
+   */
+  private rounding: number = 2; // Default rounding precision
+
+  /**
+   * The display units for all dimension lines.
+   * Determines the unit of measurement (e.g., "m", "cm", "mm").
+   */
+  private units: convert.Distance = "m"; // Default display unit
 
   /** Temporary variables for internal operations */
   private _temp = {
@@ -278,12 +291,18 @@ export class LengthMeasurement
     if (!this.world) {
       throw new Error("The length measurement needs a world to work!");
     }
-    return new SimpleDimensionLine(this.components, this.world, {
-      start: this._temp.start,
-      end: this._temp.end,
-      lineMaterial: this._lineMaterial,
-      endpointElement: newDimensionMark(),
-    });
+    return new SimpleDimensionLine(
+      this.components,
+      this.world,
+      {
+        start: this._temp.start,
+        end: this._temp.end,
+        lineMaterial: this._lineMaterial, // ?
+        endpointElement: newDimensionMark(), // Stronger-issue(update)
+      },
+      this.rounding,
+      this.units,
+    );
   }
 
   private getBoundingBoxes() {
@@ -327,4 +346,86 @@ export class LengthMeasurement
       this.cancelCreation();
     }
   };
+
+  /**
+   * Changes the world unit for all dimension lines.
+   *
+   * @param newUnit - The new world unit (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft-us" | "ft" | "yd" | "mi").
+   */
+  changeWorldUnits(newUnit: string = "m"): void {
+    if (!this.world) {
+      throw new Error("World is required to change units!");
+    }
+
+    const validUnits: string[] = [
+      "mm",
+      "cm",
+      "m",
+      "km",
+      "in",
+      "ft",
+      "ft-us",
+      "yd",
+      "mi",
+    ];
+
+    if (!validUnits.includes(newUnit)) {
+      throw new Error(
+        `Invalid unit: ${newUnit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+
+    // Update the world unit in SimpleDimensionLine
+    SimpleDimensionLine.worldUnit = newUnit as convert.Distance;
+  }
+
+  /**
+   * Changes the display units for all dimension lines.
+   *
+   * @param newUnits - The new display units (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft-us" | "ft" | "yd" | "mi").
+   */
+  changeDimensionUnits(newUnits: string): void {
+    const validUnits: string[] = [
+      "mm",
+      "cm",
+      "m",
+      "km",
+      "in",
+      "ft",
+      "ft-us",
+      "yd",
+      "mi",
+    ];
+
+    if (!validUnits.includes(newUnits)) {
+      throw new Error(
+        `Invalid unit: ${newUnits}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+
+    this.units = newUnits as convert.Distance;
+
+    // Update the units for all dimension lines
+    this.list.forEach((dimension) => {
+      dimension.setUnits(newUnits as convert.Distance);
+    });
+  }
+
+  /**
+   * Changes the rounding precision for all dimension lines.
+   *
+   * @param newRounding - The new rounding precision (e.g., 0, 1, 2, etc.).
+   */
+  changeRounding(newRounding: number): void {
+    if (!Number.isInteger(newRounding) || newRounding < 0 || newRounding > 5) {
+      throw new Error("Rounding must be an integer between 0 and 5.");
+    }
+
+    this.rounding = newRounding;
+
+    // Update the rounding for all dimension lines
+    this.list.forEach((dimension) => {
+      dimension.setRounding(newRounding);
+    });
+  }
 }
