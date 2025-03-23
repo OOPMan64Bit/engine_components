@@ -173,7 +173,23 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
           @change="${({ target }: { target: BUI.Checkbox }) => {
             dimensions.enabled = target.value;
           }}">  
-        </bim-checkbox>       
+        </bim-checkbox>
+
+        <bim-color-input 
+          label="Preview Color" color="#ff0000" 
+          @input="${({ target }: { target: BUI.ColorInput }) => {
+            // dimensions.color.set(target.color);
+            dimensions.setPreviewLineColor(target.color);
+          }}">
+        </bim-color-input>
+        
+        <bim-color-input 
+          label="Dimesion Color" color="#0000ff" 
+          @input="${({ target }: { target: BUI.ColorInput }) => {
+            // dimensions.color.set(target.color);
+            dimensions.setColors(target.color);
+          }}">
+        </bim-color-input>
         
         <bim-button label="Delete all"
           @click="${() => {

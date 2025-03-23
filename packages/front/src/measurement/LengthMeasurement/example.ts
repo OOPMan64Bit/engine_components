@@ -159,7 +159,7 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
           label="Dimensions Color" color="#0000ff" 
           @input="${({ target }: { target: BUI.ColorInput }) => {
             // dimensions.color.set(target.color);
-            dimensions.setColor(new THREE.Color(target.color));
+            dimensions.setColors(new THREE.Color(target.color));
           }}">
         </bim-color-input>
         

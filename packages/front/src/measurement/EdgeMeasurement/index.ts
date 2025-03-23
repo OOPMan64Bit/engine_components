@@ -100,6 +100,13 @@ export class EdgeMeasurement
   create = async () => {
     if (!this.preview) return;
     if (!this.enabled || !this.preview.visible) return;
+
+    // Check for duplicate line
+    if (this.hasDuplicateLine()) {
+      console.warn("Duplicate line detected. Creation aborted.");
+      return;
+    }
+
     const dims = this.components.get(LengthMeasurement);
     dims.world = this.world;
     const start = this.preview.startPoint.clone();
@@ -267,5 +274,73 @@ export class EdgeMeasurement
 
     // const scene = this.components.scene.get();
     this.preview.visible = true;
+  }
+
+  /**
+   * Checks if there is already a SimpleDimensionLine equal to the preview line.
+   *
+   * @returns {boolean} True if a duplicate line exists, false otherwise.
+   */
+  hasDuplicateLine(): boolean {
+    if (!this.preview) {
+      throw new Error("Preview line is not defined.");
+    }
+
+    const dims = this.components.get(LengthMeasurement);
+    const previewStart = this.preview.startPoint;
+    const previewEnd = this.preview.endPoint;
+
+    // Check if any existing line matches the preview line
+    return dims.list.some((line) => {
+      const start = line.startPoint;
+      const end = line.endPoint;
+
+      // Check if the start and end points match (in either order)
+      const isSameLine =
+        (start.equals(previewStart) && end.equals(previewEnd)) ||
+        (start.equals(previewEnd) && end.equals(previewStart));
+
+      return isSameLine;
+    });
+  }
+
+  /**
+   * Changes the color of the preview line.
+   *
+   * @param color - The new color to apply to the preview line.
+   */
+  setPreviewLineColor(color: THREE.Color | string): void {
+    if (!this.preview) {
+      throw new Error("Preview line is not defined.");
+    }
+
+    // Convert the color to a THREE.Color instance if it's a string
+    const newColor = typeof color === "string" ? new THREE.Color(color) : color;
+
+    // Update the line material color
+    this._lineMaterial.color = newColor;
+    this._lineMaterial.needsUpdate = true;
+
+    // Convert the color to a hex string
+    const strColor = `#${newColor.getHexString()}`;
+
+    this.preview.setColors(strColor);
+  }
+
+  /**
+   * Changes the color of all dimension lines.
+   *
+   * @param color - The new color to apply to all dimension lines.
+   */
+  setColors(color: THREE.Color | string): void {
+    if (!this.preview) {
+      throw new Error("Preview line is not defined.");
+    }
+    if (!this.world) {
+      throw new Error("The setColors needs a world to work!");
+    }
+    const dims = this.components.get(LengthMeasurement);
+
+    dims.setColors(color);
   }
 }
