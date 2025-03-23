@@ -175,6 +175,27 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
           }}"> 
         </bim-checkbox> 
         
+        <bim-color-input 
+          label="Label Color" color="#0000ff" 
+          @input="${({ target }: { target: BUI.ColorInput }) => {
+            dimensions.setLabelMarkColor(target.color);
+          }}">
+        </bim-color-input>
+
+        <bim-color-input 
+          label="Priview Color" color="#BCF124" 
+          @input="${({ target }: { target: BUI.ColorInput }) => {
+            dimensions.setPreviewColor(target.color);
+          }}">
+        </bim-color-input>
+
+        <bim-color-input 
+          label="Selection Color" color="#BCF124" 
+          @input="${({ target }: { target: BUI.ColorInput }) => {
+            dimensions.setSelectionColor(target.color);
+          }}">
+        </bim-color-input>
+
         <bim-button label="Delete all"
           @click="${() => {
             dimensions.deleteAll();

@@ -328,6 +328,15 @@ export class EdgeMeasurement
   }
 
   /**
+   * Gets the current color of the preview line.
+   *
+   * @returns The current preview line color as a THREE.Color instance.
+   */
+  getPreviewLineColor(): THREE.Color {
+    return this._lineMaterial.color;
+  }
+
+  /**
    * Changes the color of all dimension lines.
    *
    * @param color - The new color to apply to all dimension lines.
@@ -342,5 +351,15 @@ export class EdgeMeasurement
     const dims = this.components.get(LengthMeasurement);
 
     dims.setColors(color);
+  }
+
+  /**
+   * Gets the current color of all dimension lines.
+   *
+   * @returns The current color of the dimension lines as a THREE.Color instance.
+   */
+  getColor(): THREE.Color {
+    const dims = this.components.get(LengthMeasurement);
+    return dims.getColor(); // Assuming LengthMeasurement has a `getColors` method
   }
 }

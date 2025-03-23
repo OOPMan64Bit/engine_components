@@ -404,6 +404,9 @@ export class LengthMeasurement
    * @param newUnits - The new display units (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft-us" | "ft" | "yd" | "mi").
    */
   changeDimensionUnits(newUnits: string): void {
+    if (!this.world) {
+      throw new Error("World is required to change units!");
+    }
     const validUnits: string[] = [
       "mm",
       "cm",
@@ -436,6 +439,9 @@ export class LengthMeasurement
    * @param newRounding - The new rounding precision (e.g., 0, 1, 2, etc.).
    */
   changeRounding(newRounding: number): void {
+    if (!this.world) {
+      throw new Error("World is required to change rounding!");
+    }
     if (!Number.isInteger(newRounding) || newRounding < 0 || newRounding > 5) {
       throw new Error("Rounding must be an integer between 0 and 5.");
     }
@@ -451,21 +457,21 @@ export class LengthMeasurement
   /**
    * Sets the color of the dimension lines and updates all associated elements.
    *
-   * @param color - The new color to apply to the dimension lines. Must be a THREE.Color instance.
+   * @param color - The new color to apply to the dimension lines.
    */
-  setColor(color: THREE.Color): void {
-    // Validate that the color is an instance of THREE.Color
-    if (!(color instanceof THREE.Color)) {
-      throw new Error(
-        "Invalid color type. Expected an instance of THREE.Color.",
-      );
+  setColors(color: THREE.Color | string): void {
+    if (!this.world) {
+      throw new Error("The setColor needs a world to work!");
     }
 
+    // Convert the color to a THREE.Color instance if it's a string
+    const newColor = typeof color === "string" ? new THREE.Color(color) : color;
+
     // Update the line material color
-    this._lineMaterialNormal.color = color;
+    this._lineMaterialNormal.color = newColor;
 
     // Convert the color to a hex string
-    const strColor = `#${color.getHexString()}`;
+    const strColor = `#${newColor.getHexString()}`;
 
     // Update the color of all dimension lines in the list
     this.list.forEach((item) => {
@@ -473,5 +479,14 @@ export class LengthMeasurement
         item.setColors(strColor); // Pass the hex string to setColors
       }
     });
+  }
+
+  /**
+   * Gets the current color of the dimension lines.
+   *
+   * @returns The current color of the dimension lines as a THREE.Color instance.
+   */
+  getColor(): THREE.Color {
+    return this._lineMaterialNormal.color;
   }
 }

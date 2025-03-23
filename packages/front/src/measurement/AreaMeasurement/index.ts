@@ -40,6 +40,9 @@ export class AreaMeasurement
 
   private _clickCount: number = 0;
 
+  // Add a property to store the normal color
+  private _normalColor: THREE.Color = new THREE.Color("#0000FF"); // Default normal color
+
   /** {@link OBC.Component.enabled} */
   set enabled(value: boolean) {
     this._enabled = value;
@@ -120,7 +123,11 @@ export class AreaMeasurement
       return;
     }
     if (!this._currentAreaElement) {
-      const areaShape = new AreaMeasureElement(this.components, this.world);
+      const areaShape = new AreaMeasureElement(
+        this.components,
+        this.world,
+        this._normalColor,
+      );
       areaShape.onPointAdded.add(() => {
         if (this._clickCount === 2 && !areaShape.workingPlane) {
           areaShape.computeWorkingPlane();
@@ -225,4 +232,36 @@ export class AreaMeasurement
       }
     }
   };
+
+  /**
+   * Sets the color of all AreaMeasureElement instances, including the current one.
+   *
+   * @param color - The new color to apply to all AreaMeasureElement instances.
+   */
+  setColors(color: THREE.Color | string): void {
+    // Convert the color to a THREE.Color instance if it's a string
+    const newColor = typeof color === "string" ? new THREE.Color(color) : color;
+
+    // Save the color as the normal color
+    this._normalColor = newColor;
+
+    // Update the color of all AreaMeasureElement instances in the list
+    for (const areaElement of this.list) {
+      areaElement.setColors(newColor);
+    }
+
+    // Update the color of the current AreaMeasureElement, if it exists
+    if (this._currentAreaElement) {
+      this._currentAreaElement.setColors(newColor);
+    }
+  }
+
+  /**
+   * Gets the current normal color of the AreaMeasurement.
+   *
+   * @returns The current normal color as a THREE.Color instance.
+   */
+  getColor(): THREE.Color {
+    return this._normalColor;
+  }
 }

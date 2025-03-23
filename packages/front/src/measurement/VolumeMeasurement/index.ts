@@ -53,6 +53,8 @@ export class VolumeMeasurement
     return this._enabled;
   }
 
+  private _labelMarkColor: string = "#0000FF"; // Default label mark color
+
   constructor(components: OBC.Components) {
     super(components);
     this.components.add(VolumeMeasurement.uuid, this);
@@ -216,9 +218,35 @@ export class VolumeMeasurement
     this.label.three.position.copy(sphere.center);
     const formattedVolume = Math.trunc(volume * 100) / 100;
     this.label.three.element.textContent = formattedVolume.toString();
+
+    // Apply the label mark color
+    this.label.three.element.style.backgroundColor = this._labelMarkColor;
   }
 
   private onMouseMove = () => {};
 
   private onKeydown = (_e: KeyboardEvent) => {};
+
+  /**
+   * Sets the color of the label mark.
+   *
+   * @param color - The new color to apply to the label mark.
+   */
+  setLabelMarkColor(color: string): void {
+    this._labelMarkColor = color;
+
+    // Update the color of the label if it exists
+    if (this.label) {
+      this.label.three.element.style.backgroundColor = color;
+    }
+  }
+
+  /**
+   * Gets the current color of the label mark.
+   *
+   * @returns The current label mark color as a string.
+   */
+  getLabelMarkColor(): string {
+    return this._labelMarkColor;
+  }
 }

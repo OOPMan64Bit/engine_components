@@ -155,7 +155,13 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
       </bim-panel-section>
       
       <bim-panel-section collapsed label="Others"> 
-        
+        <bim-color-input 
+          label="Label Color" color="#0000ff" 
+          @input="${({ target }: { target: BUI.ColorInput }) => {
+            dimensions.setLabelMarkColor(target.color);
+          }}">
+        </bim-color-input>
+
         <bim-button label="Delete all"
           @click="${() => {
             dimensions.clear();

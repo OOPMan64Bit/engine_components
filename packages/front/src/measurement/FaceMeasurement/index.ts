@@ -97,6 +97,8 @@ export class FaceMeasurement
     opacity: 0.75,
   });
 
+  private _labelMarkColor: string = "#0000FF"; // Default label mark color
+
   /**
    * The world in which the measurements are performed.
    */
@@ -160,6 +162,7 @@ export class FaceMeasurement
 
     const scene = this.world.scene.three;
 
+    // Hey team, how about this.preview.clone()? I think this is the cause of issue of muti model select
     const geometry = new THREE.BufferGeometry();
     const mesh = new THREE.Mesh(geometry, this.selectionMaterial);
     geometry.setAttribute(
@@ -378,6 +381,7 @@ export class FaceMeasurement
     const label = new Mark(this.world, htmlText);
     const labelObject = label.three;
     labelObject.position.copy(center);
+    labelObject.element.style.backgroundColor = this._labelMarkColor;
     return label;
   }
 
@@ -426,5 +430,85 @@ export class FaceMeasurement
     this.preview.geometry.setIndex(index);
 
     return area;
+  }
+
+  /**
+   * Sets the color of the label mark for all selections.
+   *
+   * @param color - The new color to apply to the label mark.
+   */
+  setLabelMarkColor(color: string): void {
+    this._labelMarkColor = color;
+
+    // Update the color of all existing label marks
+    for (const item of this.selection) {
+      item.label.three.element.style.backgroundColor = color;
+    }
+  }
+
+  /**
+   * Gets the current color of the label mark.
+   *
+   * @returns The current label mark color as a string.
+   */
+  getLabelMarkColor(): string {
+    return this._labelMarkColor;
+  }
+
+  /**
+   * Sets the color and alpha (opacity) of the preview mesh.
+   *
+   * @param color - The new color to apply to the preview mesh.
+   * @param alpha - The new alpha (opacity) value to apply to the preview mesh (default is 1.0).
+   */
+  setPreviewColor(color: THREE.Color | string, alpha: number = 0.25): void {
+    // Convert the color to a THREE.Color instance if it's a string
+    const newColor = typeof color === "string" ? new THREE.Color(color) : color;
+
+    // Update the color of the preview material
+    const material = this.preview.material as THREE.MeshBasicMaterial;
+    material.color = newColor;
+
+    // Update the alpha (opacity) of the preview material
+    material.opacity = alpha;
+    material.transparent = alpha < 1.0; // Enable transparency if alpha is less than 1.0
+
+    material.needsUpdate = true;
+  }
+
+  /**
+   * Gets the current color of the preview mesh.
+   *
+   * @returns The current preview color as a THREE.Color instance.
+   */
+  getPreviewColor(): THREE.Color {
+    const material = this.preview.material as THREE.MeshBasicMaterial;
+    return material.color;
+  }
+
+  /**
+   * Sets the color of the selected AreaSelection.
+   *
+   * @param color - The new color to apply to the selected AreaSelection.
+   * @param alpha - The new alpha (opacity) value to apply to the selected AreaSelection (default is 0.75).
+   */
+  setSelectionColor(color: THREE.Color | string, alpha: number = 0.75): void {
+    // Convert the color to a THREE.Color instance if it's a string
+    const newColor = typeof color === "string" ? new THREE.Color(color) : color;
+
+    // Update the color and opacity of the selection material
+    this.selectionMaterial.color = newColor;
+    this.selectionMaterial.opacity = alpha;
+    this.selectionMaterial.transparent = alpha < 1.0; // Enable transparency if alpha is less than 1.0
+    this.selectionMaterial.needsUpdate = true;
+  }
+
+  /**
+   * Gets the current color of the selected AreaSelection.
+   *
+   * @returns The current selection color as a THREE.Color instance.
+   */
+  getSelectionColor(): THREE.Color {
+    return this.selectionMaterial.color;
   }
 }

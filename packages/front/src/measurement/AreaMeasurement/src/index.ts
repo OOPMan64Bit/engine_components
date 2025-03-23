@@ -60,13 +60,23 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
   constructor(
     components: OBC.Components,
     world: OBC.World,
+    color?: THREE.Color | string,
     points?: THREE.Vector3[],
   ) {
     this.world = world;
     this.components = components;
+    if (color) {
+      // Convert the color to a THREE.Color instance if it's a string
+      const newColor =
+        typeof color === "string" ? new THREE.Color(color) : color;
+      this._defaultLineMaterial.color = newColor;
+      this._defaultLineMaterial.needsUpdate = true;
+    }
     const htmlText = newDimensionMark();
     this.labelMarker = new Mark(world, htmlText);
     this.labelMarker.visible = false;
+    this.labelMarker.three.renderOrder = 1;
+    this.labelMarker.three.element.style.backgroundColor = `#${this._defaultLineMaterial.color.getHexString()}`;
     this.onPointAdded.add((point) => {
       if (this.points.length === 3 && !this._dimensionLines[2]) {
         this.addDimensionLine(point, this.points[0]);
@@ -218,5 +228,27 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
       workingPlane: this.workingPlane,
       area: this.computeArea(),
     };
+  }
+
+  /**
+   * Sets the default material color and updates the color of every dimension line.
+   *
+   * @param color - The new color to apply to the default material and all dimension lines.
+   */
+  setColors(color: THREE.Color | string): void {
+    // Convert the color to a THREE.Color instance if it's a string
+    const newColor = typeof color === "string" ? new THREE.Color(color) : color;
+
+    // Update the default line material color
+    this._defaultLineMaterial.color = newColor;
+    this._defaultLineMaterial.needsUpdate = true;
+
+    // Update the color of all dimension lines
+    for (const line of this._dimensionLines) {
+      line.setColors(`#${newColor.getHexString()}`);
+    }
+
+    // Update the label marker background color
+    this.labelMarker.three.element.style.backgroundColor = `#${newColor.getHexString()}`;
   }
 }
