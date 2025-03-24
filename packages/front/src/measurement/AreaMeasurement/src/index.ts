@@ -4,7 +4,7 @@ import * as OBC from "@thatopen/components";
 import { SimpleDimensionLine } from "../../SimpleDimensionLine";
 import { Mark } from "../../../core";
 import { newDimensionMark } from "../../utils";
-
+import convert from "convert-units";
 interface Area {
   points: THREE.Vector3[];
   workingPlane: THREE.Plane | null;
@@ -42,6 +42,25 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
 
   private _defaultLineMaterial = new THREE.LineBasicMaterial({ color: "red" });
 
+  /**
+   * The rounding precision for all dimension lines.
+   * Determines the number of decimal places to display.
+   */
+  private rounding: number = 2; // Default rounding precision
+
+  /**
+   * The display units for all dimension lines.
+   * Determines the unit of measurement (e.g., "m", "cm", "mm").
+   */
+  private units: convert.Area = "m2"; // Default display unit
+
+  /**
+   * The unit of the input data (current world unit).
+   */
+  private worldUnit: convert.Distance = "m"; // Default to meters
+
+  // private scale: number = 1;
+
   /** {@link OBC.Hideable.visible} */
   get visible() {
     return this._visible;
@@ -61,9 +80,16 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
     components: OBC.Components,
     world: OBC.World,
     color?: THREE.Color | string,
+    worldUnit?: convert.Distance,
+    units?: convert.Area,
+    rounding?: number,
     points?: THREE.Vector3[],
   ) {
     this.world = world;
+    this.worldUnit = worldUnit || "m";
+    this.units = units || "m2";
+    this.rounding = rounding || 2;
+
     this.components = components;
     if (color) {
       // Convert the color to a THREE.Color instance if it's a string
@@ -192,7 +218,18 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
       return vector2D;
     });
     const area = Math.abs(THREE.ShapeUtils.area(vectors2D));
-    this.labelMarker.three.element.textContent = `${area.toFixed(2)} m²`;
+
+    const utils = this.components.get(OBC.MeasurementUtils);
+    const convertedValue = utils.convertUnits(
+      area,
+      `${this.worldUnit}2` as convert.Area, // Input unit (world unit)
+      this.units, // Output unit (display unit)
+      this.rounding, // Precision
+    );
+    // console.log(
+    //   `${this.worldUnit}2 -> ${this.units} = ${convertedValue} ${this.units}`,
+    // );
+    this.labelMarker.three.element.textContent = `${convertedValue} ${this.units}`;
     this.labelMarker.three.position
       .set(
         xSum / vectors2D.length,
@@ -250,5 +287,45 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
 
     // Update the label marker background color
     this.labelMarker.three.element.style.backgroundColor = `#${newColor.getHexString()}`;
+  }
+
+  /**
+   * Sets the world unit for the area measurement.
+   *
+   * @param unit - The new world unit (e.g., "m", "cm", "mm").
+   */
+  setWorldUnit(unit: convert.Distance | string): void {
+    this.worldUnit = unit as convert.Distance;
+    // Update the label to reflect the new unit
+    this.computeArea();
+  }
+
+  /**
+   * Sets the display units for the area measurement.
+   *
+   * @param unit - The new display unit (e.g., "m2", "cm2", "mm2").
+   */
+  setUnit(unit: convert.Area | string): void {
+    this.units = unit as convert.Area;
+
+    // Update the label to reflect the new unit
+    this.computeArea();
+  }
+
+  /**
+   * Sets the rounding precision for the area measurement.
+   *
+   * @param rounding - The new rounding precision (e.g., 0, 1, 2, etc.).
+   * @throws {Error} If the rounding value is not a valid integer or is out of range (0-5).
+   */
+  setRounding(rounding: number): void {
+    if (!Number.isInteger(rounding) || rounding < 0 || rounding > 5) {
+      throw new Error("Rounding must be an integer between 0 and 5.");
+    }
+
+    this.rounding = rounding;
+
+    // Update the label to reflect the new rounding precision
+    this.computeArea();
   }
 }

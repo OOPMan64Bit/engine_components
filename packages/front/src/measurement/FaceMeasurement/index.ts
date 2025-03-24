@@ -2,6 +2,7 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import { Mark } from "../../core";
 import { newDimensionMark } from "../utils";
+import convert from "convert-units";
 
 /**
  * Represents a selection made by the user, containing area, perimeter, mesh, and label.
@@ -100,6 +101,25 @@ export class FaceMeasurement
   private _labelMarkColor: string = "#0000FF"; // Default label mark color
 
   /**
+   * The unit of the input data (current world unit).
+   */
+  private worldUnit: convert.Distance = "m"; // Default to meters
+
+  /**
+   * The display units for the face measurement.
+   * Determines the unit of measurement (e.g., "m2", "cm2", "mm2").
+   */
+  private units: convert.Area = "m2"; // Default display unit
+
+  /**
+   * The rounding precision for face measurement.
+   * Determines the number of decimal places to display.
+   */
+  private rounding: number = 2; // Default rounding precision
+
+  // private scale: number = 1;
+
+  /**
    * The world in which the measurements are performed.
    */
   world?: OBC.World;
@@ -108,7 +128,7 @@ export class FaceMeasurement
 
   private _currentSelelection: {
     area: number;
-    perimeter: number;
+    perimeter: number; // unit is "m"
   } | null = null;
 
   /** {@link OBC.Component.enabled} */
@@ -363,8 +383,26 @@ export class FaceMeasurement
     for (const { distance } of result.edges) {
       perimeter += distance;
     }
+    const utils = this.components.get(OBC.MeasurementUtils);
 
-    this._currentSelelection = { perimeter, area };
+    const convertedArea = utils.convertUnits(
+      area,
+      `${this.worldUnit}2` as convert.Area, // Input unit (world unit)
+      this.units as convert.Area, // Output unit (display unit)
+      this.rounding, // Precision
+    );
+
+    const convertedPerimeter = utils.convertUnits(
+      perimeter,
+      this.worldUnit as convert.Area, // Input unit (world unit)
+      "m" as convert.Area, // Output unit (display unit)
+      this.rounding, // Precision
+    );
+
+    this._currentSelelection = {
+      perimeter: convertedPerimeter,
+      area: convertedArea,
+    };
   }
 
   private newLabel(geometry: THREE.BufferGeometry, area: number) {
@@ -376,8 +414,9 @@ export class FaceMeasurement
     }
     const { center } = geometry.boundingSphere;
     const htmlText = newDimensionMark();
-    const formattedArea = Math.trunc(area * 100) / 100;
-    htmlText.textContent = formattedArea.toString();
+    // const formattedArea = Math.trunc(area * 100) / 100;
+    const formattedArea = area;
+    htmlText.textContent = `${formattedArea} ${this.units}`;
     const label = new Mark(this.world, htmlText);
     const labelObject = label.three;
     labelObject.position.copy(center);
@@ -487,10 +526,10 @@ export class FaceMeasurement
   }
 
   /**
-   * Sets the color of the selected AreaSelection.
+   * Sets the color of the selected area.
    *
-   * @param color - The new color to apply to the selected AreaSelection.
-   * @param alpha - The new alpha (opacity) value to apply to the selected AreaSelection (default is 0.75).
+   * @param color - The new color to apply to the selected area.
+   * @param alpha - The new alpha (opacity) value to apply to the selected area (default is 0.75).
    */
   setSelectionColor(color: THREE.Color | string, alpha: number = 0.75): void {
     // Convert the color to a THREE.Color instance if it's a string
@@ -504,11 +543,144 @@ export class FaceMeasurement
   }
 
   /**
-   * Gets the current color of the selected AreaSelection.
+   * Gets the current color of the selected area.
    *
    * @returns The current selection color as a THREE.Color instance.
    */
   getSelectionColor(): THREE.Color {
     return this.selectionMaterial.color;
+  }
+
+  /**
+   * Updates the information (area, perimeter, and label) for all items in the selection.
+   */
+  updateSelectionInfo(): void {
+    if (!this.world) {
+      throw new Error("World is required to update selection info!");
+    }
+
+    const utils = this.components.get(OBC.MeasurementUtils);
+
+    for (const item of this.selection) {
+      // Recalculate area and perimeter
+      const geometry = item.mesh.geometry;
+      const position = geometry.attributes.position.array as Float32Array;
+
+      let area = 0;
+      let perimeter = 0;
+      const areaTriangle = new THREE.Triangle();
+
+      for (let i = 0; i < position.length; i += 9) {
+        const p1 = new THREE.Vector3(
+          position[i],
+          position[i + 1],
+          position[i + 2],
+        );
+        const p2 = new THREE.Vector3(
+          position[i + 3],
+          position[i + 4],
+          position[i + 5],
+        );
+        const p3 = new THREE.Vector3(
+          position[i + 6],
+          position[i + 7],
+          position[i + 8],
+        );
+
+        areaTriangle.set(p1, p2, p3);
+        area += areaTriangle.getArea();
+
+        perimeter += p1.distanceTo(p2) + p2.distanceTo(p3) + p3.distanceTo(p1);
+      }
+
+      // Convert area and perimeter to the current units
+      const convertedArea = utils.convertUnits(
+        area,
+        `${this.worldUnit}2` as convert.Area,
+        this.units as convert.Area,
+        this.rounding,
+      );
+
+      const convertedPerimeter = utils.convertUnits(
+        perimeter,
+        this.worldUnit as convert.Distance,
+        "m" as convert.Distance,
+        this.rounding,
+      );
+
+      // Update the item's area and perimeter
+      item.area = convertedArea;
+      item.perimeter = convertedPerimeter;
+
+      // Update the label
+      item.label.three.element.textContent = `${convertedArea.toFixed(this.rounding)} ${this.units}`;
+    }
+  }
+  /**
+   * Sets the world unit for the face measurement.
+   *
+   * @param unit - The new world unit (e.g., "m", "cm", "mm").
+   */
+  setWorldUnit(unit: string): void {
+    const validUnits = ["mm", "cm", "m", "km", "in", "ft", "yd", "mi"];
+
+    if (!validUnits.includes(unit)) {
+      throw new Error(
+        `Invalid unit: ${unit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+
+    this.worldUnit = unit as convert.Distance;
+
+    this.updateSelectionInfo();
+  }
+
+  /**
+   * Sets the display units for the face measurement.
+   *
+   * @param newUnit - The new display units (e.g., "mm2" | "cm2" | "m2" | "km2" | "in2" | "ft2" | "mi2").
+   */
+  setUnit(newUnit: string): void {
+    if (!this.world) {
+      throw new Error("World is required to change units!");
+    }
+    const validUnits: string[] = [
+      "mm2",
+      "cm2",
+      "m2",
+      "ha",
+      "km2",
+      "in2",
+      "ft2",
+      "ac",
+      "mi2",
+    ];
+
+    if (!validUnits.includes(newUnit)) {
+      throw new Error(
+        `Invalid unit: ${newUnit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+
+    this.units = newUnit as convert.Area;
+
+    this.updateSelectionInfo();
+  }
+
+  /**
+   * Sets the rounding precision for the face measurement.
+   *
+   * @param newRounding - The new rounding precision (e.g., 0, 1, 2, etc.).
+   * @throws {Error} If the rounding value is not a valid integer or is out of range (0-5).
+   */
+  setRounding(newRounding: number): void {
+    if (!Number.isInteger(newRounding) || newRounding < 0 || newRounding > 5) {
+      throw new Error("Rounding must be an integer between 0 and 5.");
+    }
+
+    this.rounding = newRounding;
+
+    // Update the selection info to reflect the new rounding precision
+    this.updateSelectionInfo();
   }
 }

@@ -166,14 +166,13 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
         <bim-dropdown 
           label="Select world unit" required
           @change="${({ target }: { target: BUI.Dropdown }) => {
-            dimensions.changeWorldUnits(target.value[0]);
+            dimensions.setWorldUnit(target.value[0]);
           }}">
           <bim-option label="m" value="m" checked></bim-option>
           <bim-option label="cm" value="cm"></bim-option>
           <bim-option label="km" value="km"></bim-option>
           <bim-option label="mm" value="mm"></bim-option>
           <bim-option label="in" value="in"></bim-option>
-          <bim-option label="ft-us" value="ft-us"></bim-option>
           <bim-option label="ft" value="ft"></bim-option>
           <bim-option label="yd" value="yd"></bim-option>
           <bim-option label="mi" value="mi"></bim-option>
@@ -182,14 +181,13 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
         <bim-dropdown 
           label="Select display unit" required
           @change="${({ target }: { target: BUI.Dropdown }) => {
-            dimensions.changeDimensionUnits(target.value[0]);
+            dimensions.setUnit(target.value[0]);
           }}">
           <bim-option label="m" value="m" checked></bim-option>
           <bim-option label="cm" value="cm"></bim-option>
           <bim-option label="km" value="km"></bim-option>
           <bim-option label="mm" value="mm"></bim-option>
           <bim-option label="in" value="in"></bim-option>
-          <bim-option label="ft-us" value="ft-us"></bim-option>
           <bim-option label="ft" value="ft"></bim-option>
           <bim-option label="yd" value="yd"></bim-option>
           <bim-option label="mi" value="mi"></bim-option>
@@ -198,7 +196,7 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
         <bim-dropdown 
           label="Select pricision" required
           @change="${({ target }: { target: BUI.Dropdown }) => {
-            dimensions.changeRounding(target.value[0]);
+            dimensions.setRounding(target.value[0]);
           }}">
           <bim-option label="0" value=0></bim-option>
           <bim-option label="1" value=1></bim-option>

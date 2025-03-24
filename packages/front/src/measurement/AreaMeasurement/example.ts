@@ -161,6 +161,50 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
           }}">
         </bim-color-input>
 
+        <bim-dropdown 
+          label="Select world unit" required
+          @change="${({ target }: { target: BUI.Dropdown }) => {
+            areaDims.setWorldUnit(target.value[0]);
+          }}">
+          <bim-option label="m" value="m" checked></bim-option>
+          <bim-option label="cm" value="cm"></bim-option>
+          <bim-option label="km" value="km"></bim-option>
+          <bim-option label="mm" value="mm"></bim-option>
+          <bim-option label="in" value="in"></bim-option>
+          <bim-option label="ft" value="ft"></bim-option>
+          <bim-option label="yd" value="yd"></bim-option>
+          <bim-option label="mi" value="mi"></bim-option>
+        </bim-dropdown>
+        
+        <bim-dropdown 
+          label="Select display unit" required
+          @change="${({ target }: { target: BUI.Dropdown }) => {
+            areaDims.setUnit(target.value[0]);
+          }}">
+          <bim-option label="m2" value="m2" checked></bim-option>
+          <bim-option label="mm2" value="mm2"></bim-option>
+          <bim-option label="cm2" value="cm2"></bim-option>
+          <bim-option label="km2" value="km2"></bim-option>
+          <bim-option label="ha" value="ha"></bim-option>
+          <bim-option label="in2" value="in2"></bim-option>
+          <bim-option label="ft2" value="ft2"></bim-option>
+          <bim-option label="mi2" value="mi2"></bim-option>
+          <bim-option label="ac" value="ac"></bim-option>
+        </bim-dropdown>
+
+        <bim-dropdown 
+          label="Select pricision" required
+          @change="${({ target }: { target: BUI.Dropdown }) => {
+            areaDims.setRounding(target.value[0]);
+          }}">
+          <bim-option label="0" value=0></bim-option>
+          <bim-option label="1" value=1></bim-option>
+          <bim-option label="2" value=2 checked></bim-option>
+          <bim-option label="3" value=3></bim-option>
+          <bim-option label="4" value=4></bim-option>
+          <bim-option label="5" value=5></bim-option>
+        </bim-dropdown>
+
         <bim-button label="Delete all"
           @click="${() => {
             areaDims.deleteAll();

@@ -3,6 +3,7 @@ import * as FRAGS from "@thatopen/fragments";
 import * as OBC from "@thatopen/components";
 import { Mark } from "../../core";
 import { newDimensionMark } from "../utils";
+import convert from "convert-units";
 
 /**
  * This component allows users to measure geometry volumes in a 3D scene. 📕 [Tutorial](https://docs.thatopen.com/Tutorials/Components/Front/VolumeMeasurement). 📘 [API](https://docs.thatopen.com/api/@thatopen/components-front/classes/VolumeMeasurement).
@@ -36,6 +37,28 @@ export class VolumeMeasurement
    * The world in which the measurements are performed.
    */
   world?: OBC.World;
+
+  /**
+   * The unit of the input data (current world unit).
+   */
+  private worldUnit: convert.Distance = "m"; // Default to meters
+
+  /**
+   * The display units for the volume measurement.
+   * Determines the unit of measurement (e.g., "m3", "cm3", "mm3").
+   */
+  private units: convert.Volume = "m3"; // Default display unit
+
+  /**
+   * The rounding precision for volume measurement.
+   * Determines the number of decimal places to display.
+   */
+  private rounding: number = 2; // Default rounding precision
+
+  /**
+   * The display volume calculated by the component.
+   */
+  private displayVolume: number = 0; // Default to 0
 
   private _enabled: boolean = false;
 
@@ -213,11 +236,22 @@ export class VolumeMeasurement
       this.label.three.removeFromParent();
     }
 
+    this.displayVolume = volume;
+
     this.label.visible = true;
     this.world.scene.three.add(this.label.three);
     this.label.three.position.copy(sphere.center);
-    const formattedVolume = Math.trunc(volume * 100) / 100;
-    this.label.three.element.textContent = formattedVolume.toString();
+
+    const utils = this.components.get(OBC.MeasurementUtils);
+
+    // const formattedVolume = Math.trunc(volume * 100) / 100;
+    const formattedVolume = utils.convertUnits(
+      volume,
+      `${this.worldUnit}3` as convert.Volume,
+      this.units as convert.Volume,
+      this.rounding,
+    );
+    this.label.three.element.textContent = `${formattedVolume} ${this.units}`;
 
     // Apply the label mark color
     this.label.three.element.style.backgroundColor = this._labelMarkColor;
@@ -248,5 +282,109 @@ export class VolumeMeasurement
    */
   getLabelMarkColor(): string {
     return this._labelMarkColor;
+  }
+
+  /**
+   * Sets the world unit for the volume measurement.
+   *
+   * @param unit - The new world unit (e.g., "m", "cm", "mm").
+   * @throws {Error} If the provided unit is invalid.
+   */
+  setWorldUnit(unit: convert.Distance | string): void {
+    const validUnits = ["mm", "cm", "m", "km", "in", "ft", "yd"]; // The convert-units module does not support (mi³).
+
+    if (!validUnits.includes(unit)) {
+      throw new Error(
+        `Invalid unit: ${unit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+
+    this.worldUnit = unit as convert.Distance;
+
+    // Update the label to reflect the new unit
+    if (this.label && this.label.visible && this.displayVolume >= 0) {
+      const utils = this.components.get(OBC.MeasurementUtils);
+      const formattedVolume = utils.convertUnits(
+        this.displayVolume,
+        `${this.worldUnit}3` as convert.Volume,
+        this.units as convert.Volume,
+        this.rounding,
+      );
+      this.label.three.element.textContent = `${formattedVolume} ${this.units}`;
+    }
+  }
+
+  /**
+   * Sets the display units for the volume measurement.
+   *
+   * @param unit - The new display unit (e.g., "m3", "cm3", "mm3").
+   * @throws {Error} If the provided unit is invalid.
+   */
+  setUnit(unit: convert.Volume | string): void {
+    const validUnits = [
+      "mm3",
+      "cm3",
+      "ml",
+      "l",
+      "kl",
+      "m3",
+      "km3",
+      "tsp",
+      "Tbs",
+      "in3",
+      "fl-oz",
+      "cup",
+      "pnt",
+      "qt",
+      "gal",
+      "ft3",
+      "yd3",
+    ]; // Volume];
+
+    if (!validUnits.includes(unit)) {
+      throw new Error(
+        `Invalid unit: ${unit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+
+    this.units = unit as convert.Volume;
+
+    // Update the label to reflect the new unit
+    if (this.label && this.label.visible && this.displayVolume >= 0) {
+      const utils = this.components.get(OBC.MeasurementUtils);
+      const formattedVolume = utils.convertUnits(
+        this.displayVolume,
+        `${this.worldUnit}3` as convert.Volume,
+        this.units as convert.Volume,
+        this.rounding,
+      );
+      this.label.three.element.textContent = `${formattedVolume} ${this.units}`;
+    }
+  }
+
+  /**
+   * Updates the rounding precision for the volume measurement.
+   *
+   * @param rounding - The new rounding precision (e.g., 0, 1, 2, etc.).
+   * @throws {Error} If the rounding value is not a valid integer or is out of range (0-5).
+   */
+  setRounding(rounding: number): void {
+    if (!Number.isInteger(rounding) || rounding < 0 || rounding > 5) {
+      throw new Error("Rounding must be an integer between 0 and 5.");
+    }
+
+    this.rounding = rounding;
+
+    // Update the label to reflect the new rounding precision
+    if (this.label && this.label.visible && this.displayVolume >= 0) {
+      const utils = this.components.get(OBC.MeasurementUtils);
+      const formattedVolume = utils.convertUnits(
+        this.displayVolume,
+        `${this.worldUnit}3` as convert.Volume,
+        this.units as convert.Volume,
+        this.rounding,
+      );
+      this.label.three.element.textContent = `${formattedVolume} ${this.units}`;
+    }
   }
 }

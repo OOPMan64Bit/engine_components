@@ -56,11 +56,6 @@ export class SimpleDimensionLine {
   components: OBC.Components;
 
   /**
-   * The scale factor for the dimension line.
-   */
-  static scale = 1;
-
-  /**
    * The units used for the dimension line.
    */
   private units: convert.Distance = "m";
@@ -69,7 +64,7 @@ export class SimpleDimensionLine {
    * Getter for the units of the dimension line.
    * @returns {convert.Distance} The current units.
    */
-  getUnits(): convert.Distance {
+  getUnit(): convert.Distance {
     return this.units;
   }
 
@@ -78,8 +73,8 @@ export class SimpleDimensionLine {
    * Updates the units and refreshes the label.
    * @param {convert.Distance} newUnits - The new units for the dimension line.
    */
-  setUnits(newUnits: convert.Distance): void {
-    this.units = newUnits;
+  setUnit(newUnits: convert.Distance | string): void {
+    this.units = newUnits as convert.Distance;
     this.updateLabel();
   }
 
@@ -114,24 +109,51 @@ export class SimpleDimensionLine {
   /**
    * The unit of the input data (current world unit).
    */
-  private static _worldUnit: convert.Distance = "m"; // Default to meters
+  private worldUnit: convert.Distance = "m"; // Default to meters
 
   /**
    * Getter for the input unit of the dimension line.
    * @returns {string} The current input unit.
    */
-  static get worldUnit(): string {
-    return SimpleDimensionLine._worldUnit;
+  getWorldUnit(): string {
+    return this.worldUnit;
   }
 
   /**
    * Setter for the input unit of the dimension line.
    * @param {string} unit - The new input unit (e.g., "m", "cm", "mm") convert-units module type Distance.
    */
-  static set worldUnit(unit: convert.Distance) {
-    SimpleDimensionLine._worldUnit = unit;
-    // Call updateLabel for all instances
-    SimpleDimensionLine.instances.forEach((instance) => instance.updateLabel());
+  setWorldUnit(unit: convert.Distance | string) {
+    this.worldUnit = unit as convert.Distance;
+    this.updateLabel();
+  }
+
+  /**
+   * The scale factor for the dimension line.
+   */
+  private scale = 1;
+
+  /**
+   * Getter for the scale factor of the dimension line.
+   *
+   * @returns {number} The current scale factor.
+   */
+  getScale(): number {
+    return this.scale;
+  }
+
+  /**
+   * Setter for the scale factor of the dimension line.
+   *
+   * @param {number} value - The new scale factor. Must be a positive float.
+   * @throws {Error} If the scale factor is not a positive float.
+   */
+  setScale(value: number): void {
+    if (value <= 0 || !Number.isFinite(value)) {
+      throw new Error("Scale must be a positive float.");
+    }
+    this.scale = value;
+    this.updateLabel(); // Update the label to reflect the new scale
   }
 
   private _length: number;
@@ -247,12 +269,14 @@ export class SimpleDimensionLine {
     data: DimensionData,
     rounding: number = 2, // Default rounding precision
     units: convert.Distance = "m", // Default display unit
+    worldUnit: convert.Distance = "m", // Default display unit
   ) {
     this.components = components;
     this.world = world;
 
     this.rounding = rounding; // Initialize rounding
     this.units = units; // Initialize units
+    this.worldUnit = worldUnit; // Initialize world unit
 
     this._start = data.start;
     this._end = data.end;
@@ -367,8 +391,8 @@ export class SimpleDimensionLine {
     // Convert the length from the world unit to the display unit
     const utils = this.components.get(OBC.MeasurementUtils);
     const convertedValue = utils.convertUnits(
-      this._length / SimpleDimensionLine.scale,
-      SimpleDimensionLine._worldUnit, // Input unit (world unit)
+      this._length, // this.scale
+      this.worldUnit, // Input unit (world unit)
       this.units, // Output unit (display unit)
       this.rounding, // Precision
     );

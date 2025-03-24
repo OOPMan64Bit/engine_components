@@ -337,7 +337,7 @@ export class EdgeMeasurement
   }
 
   /**
-   * Changes the color of all dimension lines.
+   * Sets the color of all dimension lines.
    *
    * @param color - The new color to apply to all dimension lines.
    */
@@ -361,5 +361,129 @@ export class EdgeMeasurement
   getColor(): THREE.Color {
     const dims = this.components.get(LengthMeasurement);
     return dims.getColor(); // Assuming LengthMeasurement has a `getColors` method
+  }
+
+  /**
+   * Sets the world unit for all dimension lines.
+   *
+   * @param newUnit - The new world unit (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi").
+   */
+  setWorldUnit(newUnit: string = "m"): void {
+    if (!this.world) {
+      throw new Error("World is required to change units!");
+    }
+
+    const validUnits: string[] = [
+      "mm",
+      "cm",
+      "m",
+      "km",
+      "in",
+      "ft",
+      "yd",
+      "mi",
+    ];
+
+    if (!validUnits.includes(newUnit)) {
+      throw new Error(
+        `Invalid unit: ${newUnit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+    const dims = this.components.get(LengthMeasurement);
+
+    dims.setWorldUnit(newUnit);
+
+    if (this.preview) {
+      this.preview.setWorldUnit(newUnit);
+    }
+  }
+
+  /**
+   * Gets the current world unit for all dimension lines.
+   *
+   * @returns The current world unit as a string (e.g., "mm", "cm", "m", "km", etc.).
+   */
+  getWorldUnit(): string {
+    const dims = this.components.get(LengthMeasurement);
+
+    return dims.getWorldUnit();
+  }
+
+  /**
+   * Sets the display units for all dimension lines.
+   *
+   * @param newUnit - The new display units (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi").
+   */
+  setUnit(newUnit: string): void {
+    if (!this.world) {
+      throw new Error("World is required to change units!");
+    }
+    const validUnits: string[] = [
+      "mm",
+      "cm",
+      "m",
+      "km",
+      "in",
+      "ft",
+      "yd",
+      "mi",
+    ];
+
+    if (!validUnits.includes(newUnit)) {
+      throw new Error(
+        `Invalid unit: ${newUnit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+    const dims = this.components.get(LengthMeasurement);
+
+    dims.setUnit(newUnit);
+
+    if (this.preview) {
+      this.preview.setUnit(newUnit);
+    }
+  }
+
+  /**
+   * Gets the current display units for all dimension lines.
+   *
+   * @returns The current display units as a string (e.g., "mm", "cm", "m", "km", etc.).
+   */
+  getUnit(): string {
+    const dims = this.components.get(LengthMeasurement);
+
+    return dims.getUnit();
+  }
+
+  /**
+   * Set the rounding precision for all dimension lines.
+   *
+   * @param newRounding - The new rounding precision (e.g., 0, 1, 2, etc.).
+   */
+  setRounding(newRounding: number): void {
+    if (!this.world) {
+      throw new Error("World is required to change rounding!");
+    }
+    if (!Number.isInteger(newRounding) || newRounding < 0 || newRounding > 5) {
+      throw new Error("Rounding must be an integer between 0 and 5.");
+    }
+
+    const dims = this.components.get(LengthMeasurement);
+
+    dims.setRounding(newRounding);
+
+    if (this.preview) {
+      this.preview.setRounding(newRounding);
+    }
+  }
+
+  /**
+   * Gets the current rounding precision for all dimension lines.
+   *
+   * @returns The current rounding precision as a number.
+   */
+  getRounding(): number {
+    const dims = this.components.get(LengthMeasurement);
+
+    return dims.getRounding();
   }
 }

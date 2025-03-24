@@ -2,6 +2,7 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import { AreaMeasureElement } from "./src";
 import { GraphicVertexPicker } from "../../utils";
+import convert from "convert-units";
 
 /**
  * This component allows users to measure areas in a 3D scene. 📕 [Tutorial](https://docs.thatopen.com/Tutorials/Components/Front/AreaMeasurement). 📘 [API](https://docs.thatopen.com/api/@thatopen/components-front/classes/AreaMeasurement).
@@ -39,6 +40,23 @@ export class AreaMeasurement
   private _currentAreaElement: AreaMeasureElement | null = null;
 
   private _clickCount: number = 0;
+
+  /**
+   * The rounding precision for area measurement.
+   * Determines the number of decimal places to display.
+   */
+  private rounding: number = 2; // Default rounding precision
+
+  /**
+   * The display units for area measurement.
+   * Determines the unit of measurement (e.g., "m", "cm", "mm").
+   */
+  private units: convert.Area = "m2"; // Default display unit
+
+  /**
+   * The unit of the input data (current world unit).
+   */
+  private worldUnit: convert.Distance = "m"; // Default to meters
 
   // Add a property to store the normal color
   private _normalColor: THREE.Color = new THREE.Color("#0000FF"); // Default normal color
@@ -127,6 +145,9 @@ export class AreaMeasurement
         this.components,
         this.world,
         this._normalColor,
+        this.worldUnit,
+        this.units,
+        this.rounding,
       );
       areaShape.onPointAdded.add(() => {
         if (this._clickCount === 2 && !areaShape.workingPlane) {
@@ -263,5 +284,136 @@ export class AreaMeasurement
    */
   getColor(): THREE.Color {
     return this._normalColor;
+  }
+
+  /**
+   * Changes the world unit for AreaMeasurement.
+   *
+   * @param newUnit - The new world unit (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi").
+   */
+  setWorldUnit(newUnit: string = "m"): void {
+    if (!this.world) {
+      throw new Error("World is required to change units!");
+    }
+
+    const validUnits: string[] = [
+      "mm",
+      "cm",
+      "m",
+      "km",
+      "in",
+      "ft",
+      "yd",
+      "mi",
+    ];
+
+    if (!validUnits.includes(newUnit)) {
+      throw new Error(
+        `Invalid unit: ${newUnit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+
+    this.worldUnit = newUnit as convert.Distance;
+
+    // Update the units for AreaMeasurement
+    this.list.forEach((dimension) => {
+      dimension.setWorldUnit(newUnit as convert.Distance);
+    });
+
+    if (this._currentAreaElement) {
+      this._currentAreaElement.setWorldUnit(newUnit as convert.Distance);
+    }
+  }
+
+  /**
+   * Gets the current world unit for AreaMeasurement.
+   *
+   * @returns The current world unit as a string (e.g., "mm", "cm", "m", "km", etc.).
+   */
+  getWorldUnit(): string {
+    return this.worldUnit;
+  }
+
+  /**
+   * Sets the display units for AreaMeasurement.
+   *
+   * @param newUnit - The new display units (e.g., "mm2" | "cm2" | "m2" | "km2" | "in2" | "ft2" | "mi2").
+   */
+  setUnit(newUnit: string): void {
+    if (!this.world) {
+      throw new Error("World is required to change units!");
+    }
+    const validUnits: string[] = [
+      "mm2",
+      "cm2",
+      "m2",
+      "ha",
+      "km2",
+      "in2",
+      "ft2",
+      "ac",
+      "mi2",
+    ];
+
+    if (!validUnits.includes(newUnit)) {
+      throw new Error(
+        `Invalid unit: ${newUnit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+
+    this.units = newUnit as convert.Area;
+
+    // Update the units for all AreaMeasureElement
+    this.list.forEach((dimension) => {
+      dimension.setUnit(newUnit as convert.Area);
+    });
+
+    if (this._currentAreaElement) {
+      this._currentAreaElement.setUnit(newUnit as convert.Area);
+    }
+  }
+
+  /**
+   * Gets the current display units for AreaMeasurement.
+   *
+   * @returns The current display units as a string (e.g., "mm2", "cm2", "m2", "km2", etc.).
+   */
+  getUnit(): string {
+    return this.units;
+  }
+
+  /**
+   * Sets the rounding precision for AreaMeasurement.
+   *
+   * @param newRounding - The new rounding precision (e.g., 0, 1, 2, etc.).
+   * @throws {Error} If the rounding value is not a valid integer or is out of range (0-5).
+   */
+  setRounding(newRounding: number): void {
+    if (!this.world) {
+      throw new Error("World is required to change units!");
+    }
+    if (!Number.isInteger(newRounding) || newRounding < 0 || newRounding > 5) {
+      throw new Error("Rounding must be an integer between 0 and 5.");
+    }
+
+    this.rounding = newRounding;
+
+    // Update the rounding for all AreaMeasureElement instances
+    this.list.forEach((dimension) => {
+      dimension.setRounding(newRounding);
+    });
+
+    if (this._currentAreaElement) {
+      this._currentAreaElement.setRounding(newRounding);
+    }
+  }
+
+  /**
+   * Gets the current rounding precision for AreaMeasurement.
+   *
+   * @returns The current rounding precision as a number.
+   */
+  getRounding(): number {
+    return this.rounding;
   }
 }

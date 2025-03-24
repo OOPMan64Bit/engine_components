@@ -68,6 +68,11 @@ export class LengthMeasurement
    */
   private units: convert.Distance = "m"; // Default display unit
 
+  /**
+   * The unit of the input data (current world unit).
+   */
+  private worldUnit: convert.Distance = "m"; // Default to meters
+
   /** Temporary variables for internal operations */
   private _temp = {
     isDragging: false,
@@ -321,6 +326,7 @@ export class LengthMeasurement
       },
       this.rounding,
       this.units,
+      this.worldUnit,
     );
   }
 
@@ -369,9 +375,9 @@ export class LengthMeasurement
   /**
    * Changes the world unit for all dimension lines.
    *
-   * @param newUnit - The new world unit (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft-us" | "ft" | "yd" | "mi").
+   * @param newUnit - The new world unit (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi").
    */
-  changeWorldUnits(newUnit: string = "m"): void {
+  setWorldUnit(newUnit: string = "m"): void {
     if (!this.world) {
       throw new Error("World is required to change units!");
     }
@@ -383,7 +389,6 @@ export class LengthMeasurement
       "km",
       "in",
       "ft",
-      "ft-us",
       "yd",
       "mi",
     ];
@@ -394,16 +399,29 @@ export class LengthMeasurement
       );
     }
 
-    // Update the world unit in SimpleDimensionLine
-    SimpleDimensionLine.worldUnit = newUnit as convert.Distance;
+    this.worldUnit = newUnit as convert.Distance;
+
+    // Update the units for all dimension lines
+    this.list.forEach((dimension) => {
+      dimension.setWorldUnit(newUnit as convert.Distance);
+    });
   }
 
   /**
-   * Changes the display units for all dimension lines.
+   * Gets the current world unit for all dimension lines.
    *
-   * @param newUnits - The new display units (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft-us" | "ft" | "yd" | "mi").
+   * @returns The current world unit as a string (e.g., "mm", "cm", "m", "km", etc.).
    */
-  changeDimensionUnits(newUnits: string): void {
+  getWorldUnit(): string {
+    return this.worldUnit;
+  }
+
+  /**
+   * Sets the display units for all dimension lines.
+   *
+   * @param newUnit - The new display units (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi").
+   */
+  setUnit(newUnit: string): void {
     if (!this.world) {
       throw new Error("World is required to change units!");
     }
@@ -414,31 +432,39 @@ export class LengthMeasurement
       "km",
       "in",
       "ft",
-      "ft-us",
       "yd",
       "mi",
     ];
 
-    if (!validUnits.includes(newUnits)) {
+    if (!validUnits.includes(newUnit)) {
       throw new Error(
-        `Invalid unit: ${newUnits}. Must be one of ${validUnits.join(", ")}.`,
+        `Invalid unit: ${newUnit}. Must be one of ${validUnits.join(", ")}.`,
       );
     }
 
-    this.units = newUnits as convert.Distance;
+    this.units = newUnit as convert.Distance;
 
     // Update the units for all dimension lines
     this.list.forEach((dimension) => {
-      dimension.setUnits(newUnits as convert.Distance);
+      dimension.setUnit(newUnit as convert.Distance);
     });
   }
 
   /**
-   * Changes the rounding precision for all dimension lines.
+   * Gets the current display units for all dimension lines.
+   *
+   * @returns The current display units as a string (e.g., "mm", "cm", "m", "km", etc.).
+   */
+  getUnit(): string {
+    return this.units;
+  }
+
+  /**
+   * Set the rounding precision for all dimension lines.
    *
    * @param newRounding - The new rounding precision (e.g., 0, 1, 2, etc.).
    */
-  changeRounding(newRounding: number): void {
+  setRounding(newRounding: number): void {
     if (!this.world) {
       throw new Error("World is required to change rounding!");
     }
@@ -452,6 +478,15 @@ export class LengthMeasurement
     this.list.forEach((dimension) => {
       dimension.setRounding(newRounding);
     });
+  }
+
+  /**
+   * Gets the current rounding precision for all dimension lines.
+   *
+   * @returns The current rounding precision as a number.
+   */
+  getRounding(): number {
+    return this.rounding;
   }
 
   /**
