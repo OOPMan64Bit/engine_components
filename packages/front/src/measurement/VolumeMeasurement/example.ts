@@ -162,6 +162,57 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
           }}">
         </bim-color-input>
 
+        <bim-dropdown 
+          label="Select world unit" required
+          @change="${({ target }: { target: BUI.Dropdown }) => {
+            dimensions.setWorldUnit(target.value[0]);
+          }}">
+          <bim-option label="m" value="m" checked></bim-option>
+          <bim-option label="cm" value="cm"></bim-option>
+          <bim-option label="km" value="km"></bim-option>
+          <bim-option label="mm" value="mm"></bim-option>
+          <bim-option label="in" value="in"></bim-option>
+          <bim-option label="ft" value="ft"></bim-option>
+          <bim-option label="yd" value="yd"></bim-option>
+        </bim-dropdown>
+        
+        <bim-dropdown 
+          label="Select display unit" required
+          @change="${({ target }: { target: BUI.Dropdown }) => {
+            dimensions.setUnit(target.value[0]);
+          }}">
+          <bim-option label="m3" value="m3" checked></bim-option>
+          <bim-option label="mm3" value="mm3"></bim-option>
+          <bim-option label="cm3" value="cm3"></bim-option>
+          <bim-option label="km3" value="km3"></bim-option>
+          <bim-option label="ml" value="ml"></bim-option>
+          <bim-option label="l" value="l"></bim-option>
+          <bim-option label="kl" value="kl"></bim-option>
+          <bim-option label="ft3" value="ft3"></bim-option>
+          <bim-option label="tsp" value="tsp"></bim-option>
+          <bim-option label="Tbs" value="Tbs"></bim-option>
+          <bim-option label="in3" value="in3"></bim-option>
+          <bim-option label="fl-oz" value="fl-oz"></bim-option>
+          <bim-option label="cup" value="cup"></bim-option>
+          <bim-option label="pnt" value="pnt"></bim-option>
+          <bim-option label="qt" value="qt"></bim-option>
+          <bim-option label="gal" value="gal"></bim-option>
+          <bim-option label="yd3" value="yd3"></bim-option>
+        </bim-dropdown>
+
+        <bim-dropdown 
+          label="Select pricision" required
+          @change="${({ target }: { target: BUI.Dropdown }) => {
+            dimensions.setRounding(target.value[0]);
+          }}">
+          <bim-option label="0" value=0></bim-option>
+          <bim-option label="1" value=1></bim-option>
+          <bim-option label="2" value=2 checked></bim-option>
+          <bim-option label="3" value=3></bim-option>
+          <bim-option label="4" value=4></bim-option>
+          <bim-option label="5" value=5></bim-option>
+        </bim-dropdown>
+
         <bim-button label="Delete all"
           @click="${() => {
             dimensions.clear();

@@ -257,9 +257,15 @@ export class AreaMeasurement
   /**
    * Sets the color of all AreaMeasureElement instances, including the current one.
    *
-   * @param color - The new color to apply to all AreaMeasureElement instances.
+   * @param color - The new color to apply to all AreaMeasureElement instances as a THREE.Color instance or a string (e.g., "#FF0000").
    */
   setColors(color: THREE.Color | string): void {
+    if (typeof color === "string") {
+      if (!/^#[0-9A-F]{6}$/i.test(color)) {
+        throw new Error("Invalid color format. Must be a hex color string.");
+      }
+    }
+
     // Convert the color to a THREE.Color instance if it's a string
     const newColor = typeof color === "string" ? new THREE.Color(color) : color;
 
@@ -289,7 +295,7 @@ export class AreaMeasurement
   /**
    * Changes the world unit for AreaMeasurement.
    *
-   * @param newUnit - The new world unit (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi").
+   * @param newUnit - The new world unit must be one of: "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi".
    */
   setWorldUnit(newUnit: string = "m"): void {
     if (!this.world) {
@@ -337,7 +343,7 @@ export class AreaMeasurement
   /**
    * Sets the display units for AreaMeasurement.
    *
-   * @param newUnit - The new display units (e.g., "mm2" | "cm2" | "m2" | "km2" | "in2" | "ft2" | "mi2").
+   * @param newUnit - The new display unit must be one of: "mm2" | "cm2" | "m2" | "km2" | "in2" | "ft2" | "mi2" | "ha" | "ac".
    */
   setUnit(newUnit: string): void {
     if (!this.world) {

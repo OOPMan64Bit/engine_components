@@ -264,9 +264,13 @@ export class VolumeMeasurement
   /**
    * Sets the color of the label mark.
    *
-   * @param color - The new color to apply to the label mark.
+   * @param color - The new color to apply to the label mark as a string (e.g., "#FF0000").
    */
   setLabelMarkColor(color: string): void {
+    if (!/^#[0-9A-F]{6}$/i.test(color)) {
+      throw new Error("Invalid color format. Must be a hex color string.");
+    }
+
     this._labelMarkColor = color;
 
     // Update the color of the label if it exists
@@ -287,7 +291,7 @@ export class VolumeMeasurement
   /**
    * Sets the world unit for the volume measurement.
    *
-   * @param unit - The new world unit (e.g., "m", "cm", "mm").
+   * @param unit - The new world unit must be one of: "mm", "cm", "m", "km", "in", "ft", "yd",
    * @throws {Error} If the provided unit is invalid.
    */
   setWorldUnit(unit: convert.Distance | string): void {
@@ -317,7 +321,7 @@ export class VolumeMeasurement
   /**
    * Sets the display units for the volume measurement.
    *
-   * @param unit - The new display unit (e.g., "m3", "cm3", "mm3").
+   * @param unit - The new display unit must be one of: "mm3","cm3","ml","l","kl","m3","km3","tsp","Tbs","in3","fl-oz","cup","pnt","qt","gal","ft3","yd3",
    * @throws {Error} If the provided unit is invalid.
    */
   setUnit(unit: convert.Volume | string): void {

@@ -307,11 +307,17 @@ export class EdgeMeasurement
   /**
    * Changes the color of the preview line.
    *
-   * @param color - The new color to apply to the preview line.
+   * @param color - The new color to apply to the preview line as a THREE.Color instance or a string (e.g., "#FF0000").
    */
   setPreviewLineColor(color: THREE.Color | string): void {
     if (!this.preview) {
       throw new Error("Preview line is not defined.");
+    }
+
+    if (typeof color === "string") {
+      if (!/^#[0-9A-F]{6}$/i.test(color)) {
+        throw new Error("Invalid color format. Must be a hex color string.");
+      }
     }
 
     // Convert the color to a THREE.Color instance if it's a string
@@ -339,7 +345,7 @@ export class EdgeMeasurement
   /**
    * Sets the color of all dimension lines.
    *
-   * @param color - The new color to apply to all dimension lines.
+   * @param color - The new color for dimension lines as a THREE.Color instance or a string (e.g., "#FF0000").
    */
   setColors(color: THREE.Color | string): void {
     if (!this.preview) {
@@ -348,6 +354,13 @@ export class EdgeMeasurement
     if (!this.world) {
       throw new Error("The setColors needs a world to work!");
     }
+
+    if (typeof color === "string") {
+      if (!/^#[0-9A-F]{6}$/i.test(color)) {
+        throw new Error("Invalid color format. Must be a hex color string.");
+      }
+    }
+
     const dims = this.components.get(LengthMeasurement);
 
     dims.setColors(color);
@@ -366,7 +379,7 @@ export class EdgeMeasurement
   /**
    * Sets the world unit for all dimension lines.
    *
-   * @param newUnit - The new world unit (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi").
+   * @param newUnit - The new world unit must be one of: "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi".
    */
   setWorldUnit(newUnit: string = "m"): void {
     if (!this.world) {
@@ -412,7 +425,7 @@ export class EdgeMeasurement
   /**
    * Sets the display units for all dimension lines.
    *
-   * @param newUnit - The new display units (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi").
+   * @param newUnit - The new display unit must be one of: "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi".
    */
   setUnit(newUnit: string): void {
     if (!this.world) {
@@ -458,6 +471,7 @@ export class EdgeMeasurement
    * Set the rounding precision for all dimension lines.
    *
    * @param newRounding - The new rounding precision (e.g., 0, 1, 2, etc.).
+   * @throws {Error} If the rounding value is not a valid integer or is out of range (0-5).
    */
   setRounding(newRounding: number): void {
     if (!this.world) {

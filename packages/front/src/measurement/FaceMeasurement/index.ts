@@ -180,6 +180,26 @@ export class FaceMeasurement
 
     if (!this.enabled || !this._currentSelelection) return;
 
+    // Validate the preview object
+    if (
+      !this.preview ||
+      !this.preview.geometry ||
+      !this.preview.geometry.attributes.position
+    ) {
+      throw new Error(
+        "Invalid preview object. Ensure the preview has valid geometry.",
+      );
+    }
+
+    // Check if the preview hash is invalid or if an item with the same hash already exists in the selection array
+    const previewHash = this.getGeometryHash(this.preview.geometry);
+    if (!previewHash || this.hasSameHashInSelection(previewHash)) {
+      console.warn(
+        "An item with the same geometry hash already exists in the selection. Skipping creation.",
+      );
+      return;
+    }
+
     const scene = this.world.scene.three;
 
     // Hey team, how about this.preview.clone()? I think this is the cause of issue of muti model select
@@ -472,11 +492,42 @@ export class FaceMeasurement
   }
 
   /**
+   * Checks if there is an item in the selection array with the same hash as the preview geometry.
+   *
+   * @returns {boolean} `true` if an item with the same hash exists, otherwise `false`.
+   */
+  hasSameHashInSelection(previewHash: string): boolean {
+    for (const item of this.selection) {
+      const itemHash = this.getGeometryHash(item.mesh.geometry);
+      if (itemHash === previewHash) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  getGeometryHash(geometry: THREE.BufferGeometry): string | null {
+    if (!geometry || !geometry.attributes.position) return null;
+
+    const positions = geometry.attributes.position.array;
+    let hash = 0;
+
+    for (let i = 0; i < positions.length; i++) {
+      hash += positions[i] * (i + 1); // Simple weighted sum hash
+    }
+    return hash.toString(); // Convert to string for easy comparison
+  }
+
+  /**
    * Sets the color of the label mark for all selections.
    *
-   * @param color - The new color to apply to the label mark.
+   * @param color - The new color to apply to the label mark.as string ex: "#0000FF"
    */
   setLabelMarkColor(color: string): void {
+    if (!/^#[0-9A-F]{6}$/i.test(color)) {
+      throw new Error("Invalid color format. Must be a hex color string.");
+    }
     this._labelMarkColor = color;
 
     // Update the color of all existing label marks
@@ -497,10 +548,18 @@ export class FaceMeasurement
   /**
    * Sets the color and alpha (opacity) of the preview mesh.
    *
-   * @param color - The new color to apply to the preview mesh.
-   * @param alpha - The new alpha (opacity) value to apply to the preview mesh (default is 1.0).
+   * @param color - The new color to apply to the preview mesh as a THREE.Color instance or a string (e.g., "#FF0000").
+   * @param alpha - The new alpha (opacity) value to apply to the preview mesh (default is 0.25).
    */
   setPreviewColor(color: THREE.Color | string, alpha: number = 0.25): void {
+    if (alpha < 0 || alpha > 1) {
+      throw new Error("Alpha value must be between 0 and 1.");
+    }
+    if (typeof color === "string") {
+      if (!/^#[0-9A-F]{6}$/i.test(color)) {
+        throw new Error("Invalid color format. Must be a hex color string.");
+      }
+    }
     // Convert the color to a THREE.Color instance if it's a string
     const newColor = typeof color === "string" ? new THREE.Color(color) : color;
 
@@ -528,10 +587,18 @@ export class FaceMeasurement
   /**
    * Sets the color of the selected area.
    *
-   * @param color - The new color to apply to the selected area.
+   * @param color - The new color to apply to the selected area as a THREE.Color instance or a string (e.g., "#FF0000").
    * @param alpha - The new alpha (opacity) value to apply to the selected area (default is 0.75).
    */
   setSelectionColor(color: THREE.Color | string, alpha: number = 0.75): void {
+    if (alpha < 0 || alpha > 1) {
+      throw new Error("Alpha value must be between 0 and 1.");
+    }
+    if (typeof color === "string") {
+      if (!/^#[0-9A-F]{6}$/i.test(color)) {
+        throw new Error("Invalid color format. Must be a hex color string.");
+      }
+    }
     // Convert the color to a THREE.Color instance if it's a string
     const newColor = typeof color === "string" ? new THREE.Color(color) : color;
 
@@ -619,7 +686,7 @@ export class FaceMeasurement
   /**
    * Sets the world unit for the face measurement.
    *
-   * @param unit - The new world unit (e.g., "m", "cm", "mm").
+   * @param unit - The new world unit must be one of: "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi".
    */
   setWorldUnit(unit: string): void {
     const validUnits = ["mm", "cm", "m", "km", "in", "ft", "yd", "mi"];
@@ -638,7 +705,7 @@ export class FaceMeasurement
   /**
    * Sets the display units for the face measurement.
    *
-   * @param newUnit - The new display units (e.g., "mm2" | "cm2" | "m2" | "km2" | "in2" | "ft2" | "mi2").
+   * @param newUnit - The new display unit must be one of: "mm2" | "cm2" | "m2" | "km2" | "in2" | "ft2" | "mi2" | "ha" | "ac".
    */
   setUnit(newUnit: string): void {
     if (!this.world) {

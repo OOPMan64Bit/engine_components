@@ -375,7 +375,7 @@ export class LengthMeasurement
   /**
    * Changes the world unit for all dimension lines.
    *
-   * @param newUnit - The new world unit (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi").
+   * @param newUnit - The new world unit must be one of: "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi".
    */
   setWorldUnit(newUnit: string = "m"): void {
     if (!this.world) {
@@ -419,7 +419,7 @@ export class LengthMeasurement
   /**
    * Sets the display units for all dimension lines.
    *
-   * @param newUnit - The new display units (e.g., "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi").
+   * @param newUnit - The new display unit must be one of: "mm" | "cm" | "m" | "km" | "in" | "ft" | "yd" | "mi".
    */
   setUnit(newUnit: string): void {
     if (!this.world) {
@@ -463,6 +463,7 @@ export class LengthMeasurement
    * Set the rounding precision for all dimension lines.
    *
    * @param newRounding - The new rounding precision (e.g., 0, 1, 2, etc.).
+   * @throws {Error} If the rounding value is not a valid integer or is out of range (0-5).
    */
   setRounding(newRounding: number): void {
     if (!this.world) {
@@ -492,11 +493,17 @@ export class LengthMeasurement
   /**
    * Sets the color of the dimension lines and updates all associated elements.
    *
-   * @param color - The new color to apply to the dimension lines.
+   * @param color - New color for dimension lines as a THREE.Color instance or a string (e.g., "#FF0000").
    */
   setColors(color: THREE.Color | string): void {
     if (!this.world) {
       throw new Error("The setColor needs a world to work!");
+    }
+
+    if (typeof color === "string") {
+      if (!/^#[0-9A-F]{6}$/i.test(color)) {
+        throw new Error("Invalid color format. Must be a hex color string.");
+      }
     }
 
     // Convert the color to a THREE.Color instance if it's a string
