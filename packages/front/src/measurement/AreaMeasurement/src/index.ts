@@ -186,12 +186,12 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
       this.points[2],
     );
     const referenceVector = new THREE.Vector3(0, 1, 0);
+
     const theta = this.workingPlane.normal.angleTo(referenceVector);
 
     const rotationAxis = new THREE.Vector3()
       .crossVectors(this.workingPlane.normal, referenceVector)
       .normalize();
-
     this._rotationMatrix = new THREE.Matrix4().makeRotationAxis(
       rotationAxis,
       theta,

@@ -79,7 +79,6 @@ const data = await file.arrayBuffer();
 const buffer = new Uint8Array(data);
 const model = fragments.load(buffer);
 world.scene.three.add(model);
-
 for (const child of model.children) {
   if (child instanceof THREE.Mesh) {
     world.meshes.add(child);

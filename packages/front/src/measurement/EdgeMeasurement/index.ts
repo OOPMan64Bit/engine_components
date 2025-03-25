@@ -101,12 +101,6 @@ export class EdgeMeasurement
     if (!this.preview) return;
     if (!this.enabled || !this.preview.visible) return;
 
-    // Check for duplicate line
-    if (this.hasDuplicateLine()) {
-      console.warn("Duplicate line detected. Creation aborted.");
-      return;
-    }
-
     const dims = this.components.get(LengthMeasurement);
     dims.world = this.world;
     const start = this.preview.startPoint.clone();
@@ -274,34 +268,6 @@ export class EdgeMeasurement
 
     // const scene = this.components.scene.get();
     this.preview.visible = true;
-  }
-
-  /**
-   * Checks if there is already a SimpleDimensionLine equal to the preview line.
-   *
-   * @returns {boolean} True if a duplicate line exists, false otherwise.
-   */
-  hasDuplicateLine(): boolean {
-    if (!this.preview) {
-      throw new Error("Preview line is not defined.");
-    }
-
-    const dims = this.components.get(LengthMeasurement);
-    const previewStart = this.preview.startPoint;
-    const previewEnd = this.preview.endPoint;
-
-    // Check if any existing line matches the preview line
-    return dims.list.some((line) => {
-      const start = line.startPoint;
-      const end = line.endPoint;
-
-      // Check if the start and end points match (in either order)
-      const isSameLine =
-        (start.equals(previewStart) && end.equals(previewEnd)) ||
-        (start.equals(previewEnd) && end.equals(previewStart));
-
-      return isSameLine;
-    });
   }
 
   /**

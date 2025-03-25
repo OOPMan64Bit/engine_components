@@ -191,18 +191,8 @@ export class FaceMeasurement
       );
     }
 
-    // Check if the preview hash is invalid or if an item with the same hash already exists in the selection array
-    const previewHash = this.getGeometryHash(this.preview.geometry);
-    if (!previewHash || this.hasSameHashInSelection(previewHash)) {
-      console.warn(
-        "An item with the same geometry hash already exists in the selection. Skipping creation.",
-      );
-      return;
-    }
-
     const scene = this.world.scene.three;
 
-    // Hey team, how about this.preview.clone()? I think this is the cause of issue of muti model select
     const geometry = new THREE.BufferGeometry();
     const mesh = new THREE.Mesh(geometry, this.selectionMaterial);
     geometry.setAttribute(
@@ -489,34 +479,6 @@ export class FaceMeasurement
     this.preview.geometry.setIndex(index);
 
     return area;
-  }
-
-  /**
-   * Checks if there is an item in the selection array with the same hash as the preview geometry.
-   *
-   * @returns {boolean} `true` if an item with the same hash exists, otherwise `false`.
-   */
-  hasSameHashInSelection(previewHash: string): boolean {
-    for (const item of this.selection) {
-      const itemHash = this.getGeometryHash(item.mesh.geometry);
-      if (itemHash === previewHash) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  getGeometryHash(geometry: THREE.BufferGeometry): string | null {
-    if (!geometry || !geometry.attributes.position) return null;
-
-    const positions = geometry.attributes.position.array;
-    let hash = 0;
-
-    for (let i = 0; i < positions.length; i++) {
-      hash += positions[i] * (i + 1); // Simple weighted sum hash
-    }
-    return hash.toString(); // Convert to string for easy comparison
   }
 
   /**

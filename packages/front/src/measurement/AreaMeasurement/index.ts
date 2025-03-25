@@ -158,6 +158,7 @@ export class AreaMeasurement
       areaShape.onPointRemoved.add(() => this._clickCount--);
       this._currentAreaElement = areaShape;
     }
+
     this._currentAreaElement.setPoint(point, this._clickCount);
     this._currentAreaElement.computeArea();
     this._clickCount++;
