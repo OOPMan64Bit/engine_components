@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import * as OBC from "@thatopen/components";
-
 import { SimpleDimensionLine } from "../../SimpleDimensionLine";
 import { Mark } from "../../../core";
 import { newDimensionMark } from "../../utils";
@@ -59,6 +58,12 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
    */
   private worldUnit: convert.Distance = "m"; // Default to meters
 
+  /**
+   * The mesh used to fill the area for visualization.
+   * This mesh represents the filled area in the 3D scene.
+   */
+  private fillMesh: THREE.Mesh | null = null;
+
   // private scale: number = 1;
 
   /** {@link OBC.Hideable.visible} */
@@ -79,6 +84,7 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
   constructor(
     components: OBC.Components,
     world: OBC.World,
+    fillmaterial: THREE.Material,
     color?: THREE.Color | string,
     worldUnit?: convert.Distance,
     units?: convert.Area,
@@ -110,6 +116,11 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
       }
     });
     points?.forEach((point) => this.setPoint(point));
+
+    // Initialize the mesh with an empty geometry
+    this.fillMesh = new THREE.Mesh(new THREE.BufferGeometry(), fillmaterial);
+    this.fillMesh.visible = false; // Initially hide the mesh
+    this.world.scene.three.add(this.fillMesh); // Add the mesh to the scene
   }
 
   setPoint(point: THREE.Vector3, index?: number) {
@@ -133,6 +144,8 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
     const { previousLine, nextLine } = this.getLinesBetweenIndex(_index);
     if (previousLine) previousLine.endPoint = point;
     if (nextLine) nextLine.startPoint = point;
+
+    this.updatePlaneMesh(this.fillMesh as THREE.Mesh, this.points);
   }
 
   removePoint(index: number) {
@@ -143,6 +156,7 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
     nextLine?.dispose();
     this._dimensionLines.splice(index, 1);
     this.onPointRemoved.trigger();
+    this.updatePlaneMesh(this.fillMesh as THREE.Mesh, this.points);
   }
 
   toggleLabel() {
@@ -226,6 +240,7 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
       this.units, // Output unit (display unit)
       this.rounding, // Precision
     );
+
     // console.log(
     //   `${this.worldUnit}2 -> ${this.units} = ${convertedValue} ${this.units}`,
     // );
@@ -255,6 +270,8 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
     this._rotationMatrix = null;
     this.workingPlane = null;
     this._defaultLineMaterial.dispose();
+    this.fillMesh?.removeFromParent();
+    this.fillMesh?.geometry.dispose();
     this.onDisposed.trigger();
     this.onDisposed.reset();
   }
@@ -327,5 +344,96 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
 
     // Update the label to reflect the new rounding precision
     this.computeArea();
+  }
+
+  /**
+   * Updates a plane mesh by adding or removing a single vertex.
+   * @param {THREE.Mesh} mesh - The existing plane mesh.
+   * @param {THREE.Vector3[]} updatedVertices - The updated vertices (one added or removed).
+   */
+  updatePlaneMesh(mesh: THREE.Mesh, updatedVertices: THREE.Vector3[]): void {
+    if (!mesh || !mesh.geometry) {
+      // console.error("Invalid mesh or geometry. Cannot update plane mesh.");
+      return;
+    }
+    if (updatedVertices.length < 3) {
+      // console.error("At least 3 vertices are required to maintain a valid plane.");
+      mesh.visible = false;
+      return;
+    }
+    const geometry = mesh.geometry as THREE.BufferGeometry;
+
+    let positionAttribute = geometry.getAttribute(
+      "position",
+    ) as THREE.BufferAttribute;
+    let positionArray = positionAttribute
+      ? (positionAttribute.array as Float32Array) // use exist array
+      : null;
+
+    // Reuse existing buffer if large enough
+    if (!positionArray || positionArray.length < updatedVertices.length * 3) {
+      // Allocate a slightly larger buffer to reduce future allocations (e.g., +20%)
+      // const newSize = Math.ceil(updatedVertices.length * 1.2) * 3;
+      const newSize = updatedVertices.length * 3;
+      positionArray = new Float32Array(newSize); // create new array
+      positionAttribute = new THREE.BufferAttribute(positionArray, 3);
+      geometry.setAttribute("position", positionAttribute);
+    }
+
+    // Update only the required positions
+    for (let i = 0; i < updatedVertices.length; i++) {
+      positionArray[i * 3] = updatedVertices[i].x;
+      positionArray[i * 3 + 1] = updatedVertices[i].y;
+      positionArray[i * 3 + 2] = updatedVertices[i].z;
+    }
+
+    // Find projection plane for 2D triangulation
+    let axis1 = null;
+    let axis2 = null;
+
+    const normal = new THREE.Vector3()
+      .subVectors(updatedVertices[1], updatedVertices[0])
+      .cross(
+        new THREE.Vector3().subVectors(updatedVertices[2], updatedVertices[0]),
+      )
+      .normalize();
+
+    // Determine the two smallest components (axes with the least influence)
+    if (
+      Math.abs(normal.x) >= Math.abs(normal.y) &&
+      Math.abs(normal.x) >= Math.abs(normal.z)
+    ) {
+      axis1 = new THREE.Vector3(0, 1, 0);
+      axis2 = new THREE.Vector3(0, 0, 1); // Y and Z are lowest
+    } else if (
+      Math.abs(normal.y) >= Math.abs(normal.x) &&
+      Math.abs(normal.y) >= Math.abs(normal.z)
+    ) {
+      axis1 = new THREE.Vector3(1, 0, 0);
+      axis2 = new THREE.Vector3(0, 0, 1); // X and Z are lowest
+    } else {
+      axis1 = new THREE.Vector3(1, 0, 0);
+      axis2 = new THREE.Vector3(0, 1, 0); // X and Y are lowest
+    }
+    // Convert 3D vertices to 2D for Earcut triangulation
+    const vertices2D: THREE.Vector2[] = [];
+    for (const v of updatedVertices) {
+      vertices2D.push(new THREE.Vector2(v.dot(axis1), v.dot(axis2)));
+    }
+
+    // Generate triangle indices using Earcut
+    const indicesArray = THREE.ShapeUtils.triangulateShape(vertices2D, []);
+    if (indicesArray.length === 0) {
+      console.warn("Triangulation failed. Ensure vertices form a valid shape.");
+      return;
+    }
+    // Convert indices to a flat array
+    const indices = indicesArray.flat();
+
+    geometry.setIndex(indices); // Update face indices
+    geometry.computeVertexNormals(); // Recalculate normals for correct shading
+    positionAttribute.needsUpdate = true; // Mark for update
+    mesh.position.copy(normal.setLength(0.01));
+    mesh.visible = true; // Show the updated mesh
   }
 }

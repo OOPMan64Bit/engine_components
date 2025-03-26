@@ -492,7 +492,8 @@ export class MeasurementUtils extends Component {
    * @param fromUnit - The unit of the input value (e.g., "m" for meters, "m2" for square meters, "m3" for cubic meters).
    * @param toUnit - The unit to convert to (e.g., "cm" for centimeters, "cm2" for square centimeters, "cm3" for cubic centimeters).
    * ref: convert.Unit
-   * @param precision - The number of decimal places to round the result to (default is 2).
+   * @param precision - The number of decimal places to round the result to, as number between 0 and 5. (default is 2).
+   * @throws {Error} If the rounding value is not a valid integer or is out of range (0-5).
    * @returns The converted value rounded to the specified precision.
    */
   convertUnits(
@@ -502,6 +503,9 @@ export class MeasurementUtils extends Component {
     precision = 2,
   ): number {
     try {
+      if (!Number.isInteger(precision) || precision < 0 || precision > 5) {
+        throw new Error("Rounding must be an integer between 0 and 5.");
+      }
       const convertedValue = convert(value).from(fromUnit).to(toUnit);
       const factor = 10 ** precision; // Use ** operator for precision
       return Math.round(convertedValue * factor) / factor; // Apply precision

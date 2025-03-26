@@ -155,9 +155,16 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
         </bim-checkbox>  
         
         <bim-color-input 
-          label="Select Color" color="#0000ff" 
+          label="Border Color" color="#4eb20a" 
           @input="${({ target }: { target: BUI.ColorInput }) => {
             areaDims.setColors(target.color);
+          }}">
+        </bim-color-input>
+        
+        <bim-color-input 
+          label="Fill Color" color="#248212"
+          @input="${({ target }: { target: BUI.ColorInput }) => {
+            areaDims.setFillColorAndOpacity(target.color);
           }}">
         </bim-color-input>
 

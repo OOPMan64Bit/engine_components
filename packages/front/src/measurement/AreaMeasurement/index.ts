@@ -59,7 +59,18 @@ export class AreaMeasurement
   private worldUnit: convert.Distance = "m"; // Default to meters
 
   // Add a property to store the normal color
-  private _normalColor: THREE.Color = new THREE.Color("#0000FF"); // Default normal color
+  private normalColor: THREE.Color = new THREE.Color("#4eb20a"); // Default normal color
+
+  /**
+   * The material used to fill the area for visualization.
+   * This material determines the color and appearance of the filled area.
+   */
+  private fillMaterial: THREE.MeshBasicMaterial = new THREE.MeshBasicMaterial({
+    color: 0x248212, // Default green color
+    side: THREE.DoubleSide, // Render both sides of the area
+    transparent: true, // Allow transparency
+    opacity: 0.4, // Default opacity
+  });
 
   /** {@link OBC.Component.enabled} */
   set enabled(value: boolean) {
@@ -144,7 +155,8 @@ export class AreaMeasurement
       const areaShape = new AreaMeasureElement(
         this.components,
         this.world,
-        this._normalColor,
+        this.fillMaterial,
+        this.normalColor,
         this.worldUnit,
         this.units,
         this.rounding,
@@ -256,6 +268,56 @@ export class AreaMeasurement
   };
 
   /**
+   * Sets the color and alpha (opacity) of the fill material.
+   *
+   * @param color - The new color to apply to the fill material as a THREE.Color instance or a string ( default is "#0x00ff00").
+   * @param alpha - The new alpha (opacity) value to apply to the fill material (default is 0.4).
+   * @throws {Error} If the alpha value is not between 0 and 1.
+   * @throws {Error} If the color is not a valid hex string or a THREE.Color instance.
+   */
+  setFillColorAndOpacity(
+    color: THREE.Color | string,
+    alpha: number = 0.4,
+  ): void {
+    // Validate the alpha value
+    if (alpha < 0 || alpha > 1) {
+      throw new Error("Alpha value must be between 0 and 1.");
+    }
+
+    // Validate the color parameter
+    if (typeof color === "string") {
+      if (!/^#[0-9A-F]{6}$/i.test(color)) {
+        throw new Error("Invalid color format. Must be a hex color string.");
+      }
+    } else if (!(color instanceof THREE.Color)) {
+      throw new Error(
+        "Invalid color. Must be a THREE.Color instance or a hex string.",
+      );
+    }
+
+    // Convert the color to a THREE.Color instance if it's a string
+    const newColor = typeof color === "string" ? new THREE.Color(color) : color;
+
+    // Update the fill material's color and opacity
+    this.fillMaterial.color = newColor;
+    this.fillMaterial.opacity = alpha;
+    this.fillMaterial.transparent = alpha < 1.0; // Enable transparency if alpha is less than 1.0
+    this.fillMaterial.needsUpdate = true; // Ensure the material updates in the scene
+  }
+
+  /**
+   * Gets the current color and alpha (opacity) of the fill material.
+   *
+   * @returns An object containing the current color as a THREE.Color instance and the alpha value as a number.
+   */
+  getFillColorAndOpacity(): { color: THREE.Color; alpha: number } {
+    return {
+      color: this.fillMaterial.color,
+      alpha: this.fillMaterial.opacity,
+    };
+  }
+
+  /**
    * Sets the color of all AreaMeasureElement instances, including the current one.
    *
    * @param color - The new color to apply to all AreaMeasureElement instances as a THREE.Color instance or a string (e.g., "#FF0000").
@@ -271,7 +333,7 @@ export class AreaMeasurement
     const newColor = typeof color === "string" ? new THREE.Color(color) : color;
 
     // Save the color as the normal color
-    this._normalColor = newColor;
+    this.normalColor = newColor;
 
     // Update the color of all AreaMeasureElement instances in the list
     for (const areaElement of this.list) {
@@ -290,7 +352,7 @@ export class AreaMeasurement
    * @returns The current normal color as a THREE.Color instance.
    */
   getColor(): THREE.Color {
-    return this._normalColor;
+    return this.normalColor;
   }
 
   /**
