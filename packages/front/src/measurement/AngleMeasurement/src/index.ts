@@ -4,7 +4,7 @@ import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { Line2 } from "three/examples/jsm/lines/Line2.js";
 import { Mark } from "../../../core";
-import { newDimensionMark } from "../../utils";
+import { newDimensionMark, newEndPoint } from "../../utils";
 
 interface Angle {
   points: THREE.Vector3[];
@@ -17,6 +17,7 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
   visible: boolean = true;
 
   points: THREE.Vector3[] = [];
+  endPoints: Mark[] = [];
 
   world: OBC.World;
 
@@ -41,6 +42,12 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     this._lineMaterial = material;
     this._line.material = material;
     this._lineMaterial.resolution.set(window.innerWidth, window.innerHeight);
+    if (this._labelMarker)
+      this._labelMarker.three.element.style.backgroundColor = `#${material.color.getHexString()}`;
+    this.endPoints.forEach((item) => {
+      item.three.element.style.backgroundColor = `#${material.color.getHexString()}`;
+      item.three.element.style.borderColor = `#${material.color.getHexString()}`;
+    });
   }
 
   get lineMaterial() {
@@ -68,6 +75,7 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
 
     const htmlText = newDimensionMark();
     this._labelMarker = new Mark(world, htmlText);
+    this._labelMarker.three.renderOrder = 1;
     this.labelMarker.visible = true;
 
     this.onPointAdded.add(() => {
@@ -94,6 +102,7 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     }
     if (![0, 1, 2].includes(_index)) return;
     this.points[_index] = point;
+    this.updateEndpointElement(_index as 0 | 1 | 2, point);
     this.onPointAdded.trigger(point);
     const points = this.points.map((point) => {
       return [point.x, point.y, point.z];
@@ -120,6 +129,7 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
   dispose() {
     this.points = [];
     this.labelMarker.dispose();
+    this.endPoints.forEach((item) => item.dispose());
     this.onAngleComputed.reset();
     this.onPointAdded.reset();
     this.labelMarker.dispose();
@@ -128,5 +138,21 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     this._lineGeometry.dispose();
     this.onDisposed.trigger();
     this.onDisposed.reset();
+  }
+
+  private updateEndpointElement(index: 0 | 1 | 2, point: THREE.Vector3) {
+    if (!this.endPoints[index]) {
+      // create
+      const marker = new Mark(this.world, newEndPoint());
+      marker.three.position.copy(point);
+      this.endPoints[index] = marker;
+      marker.three.element.style.backgroundColor = `#${this._lineMaterial.color.getHexString()}`;
+      marker.three.element.style.borderColor = `#${this._lineMaterial.color.getHexString()}`;
+      marker.three.renderOrder = 0;
+      marker.visible = true;
+    } else {
+      // update point
+      this.endPoints[index].three.position.copy(point);
+    }
   }
 }

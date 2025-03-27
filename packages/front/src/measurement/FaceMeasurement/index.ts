@@ -2,6 +2,7 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import { Mark } from "../../core";
 import { newDimensionMark } from "../utils";
+import { SimpleDimensionLine } from "../SimpleDimensionLine";
 import convert from "convert-units";
 
 /**
@@ -27,6 +28,10 @@ export interface AreaSelection {
    * The label associated with the selection.
    */
   label: Mark;
+
+  edges: any[]; // MeasureEdge
+
+  dimensionLines: SimpleDimensionLine[]; // border edges
 }
 
 /**
@@ -47,6 +52,8 @@ export interface SerializedAreaMeasure {
    * The calculated area of the selection.
    */
   area: number;
+
+  edges: any[];
 }
 
 /**
@@ -98,6 +105,13 @@ export class FaceMeasurement
     opacity: 0.75,
   });
 
+  borderMaterial = new THREE.LineBasicMaterial({
+    side: 2,
+    depthTest: false,
+    transparent: false,
+    color: "#0000FF",
+  });
+
   private _labelMarkColor: string = "#0000FF"; // Default label mark color
 
   /**
@@ -129,6 +143,7 @@ export class FaceMeasurement
   private _currentSelelection: {
     area: number;
     perimeter: number; // unit is "m"
+    edges: any[];
   } | null = null;
 
   /** {@link OBC.Component.enabled} */
@@ -167,6 +182,7 @@ export class FaceMeasurement
     this.preview.material.dispose();
     this.preview.geometry.dispose();
     this.selectionMaterial.dispose();
+    this.borderMaterial.dispose();
     this.onDisposed.trigger();
     this.onDisposed.reset();
     (this.components as any) = null;
@@ -199,15 +215,31 @@ export class FaceMeasurement
       "position",
       this.preview.geometry.attributes.position,
     );
-    mesh.position.copy(this.preview.position);
+    // mesh.position.copy(this.preview.position);
+    mesh.matrixWorld.copy(this.preview.matrix);
+    mesh.updateMatrixWorld();
     scene.add(mesh);
 
     geometry.computeBoundingSphere();
-    const { area, perimeter } = this._currentSelelection;
+    const { area, perimeter, edges } = this._currentSelelection;
+
     const label = this.newLabel(geometry, area);
     mesh.add(label.three);
 
-    this.selection.push({ area, perimeter, mesh, label });
+    const dimensionLines: SimpleDimensionLine[] = [];
+
+    for (const { points } of edges) {
+      dimensionLines.push(this.addDimensionLine(points[0], points[1]));
+    }
+
+    this.selection.push({
+      area,
+      perimeter,
+      mesh,
+      label,
+      edges,
+      dimensionLines,
+    });
   };
 
   /** {@link OBC.Createable.delete} */
@@ -228,6 +260,9 @@ export class FaceMeasurement
     found.mesh.removeFromParent();
     found.mesh.geometry.dispose();
     found.label.dispose();
+    for (const line of found.dimensionLines) {
+      line.dispose();
+    }
     const index = this.selection.indexOf(found);
     this.selection.splice(index, 1);
   }
@@ -242,6 +277,9 @@ export class FaceMeasurement
       item.mesh.removeFromParent();
       item.mesh.geometry.dispose();
       item.label.dispose();
+      for (const line of item.dimensionLines) {
+        line.dispose();
+      }
     }
     this.selection = [];
   }
@@ -263,9 +301,9 @@ export class FaceMeasurement
     const serialized: SerializedAreaMeasure[] = [];
     for (const item of this.selection) {
       const geometry = item.mesh.geometry;
-      const { area, perimeter } = item;
+      const { area, perimeter, edges } = item;
       const position = geometry.attributes.position.array as Float32Array;
-      serialized.push({ position, area, perimeter });
+      serialized.push({ position, area, perimeter, edges });
     }
     return serialized;
   }
@@ -291,10 +329,23 @@ export class FaceMeasurement
       const attr = new THREE.BufferAttribute(item.position, 3);
       geometry.setAttribute("position", attr);
       geometry.computeBoundingSphere();
-      const { area, perimeter } = item;
+      const { area, perimeter, edges } = item;
       const label = this.newLabel(geometry, area);
       mesh.add(label.three);
-      this.selection.push({ area, perimeter, mesh, label });
+
+      const dimensionLines: SimpleDimensionLine[] = [];
+
+      for (const { points } of edges) {
+        dimensionLines.push(this.addDimensionLine(points[0], points[1]));
+      }
+      this.selection.push({
+        area,
+        perimeter,
+        mesh,
+        label,
+        edges,
+        dimensionLines,
+      });
     }
   }
 
@@ -333,9 +384,15 @@ export class FaceMeasurement
       if (active) {
         scene.add(item.mesh);
         item.mesh.add(label);
+        for (const line of item.dimensionLines) {
+          line.visible = true;
+        }
       } else {
         item.mesh.removeFromParent();
         label.removeFromParent();
+        for (const line of item.dimensionLines) {
+          line.visible = false;
+        }
       }
     }
   }
@@ -393,25 +450,11 @@ export class FaceMeasurement
     for (const { distance } of result.edges) {
       perimeter += distance;
     }
-    const utils = this.components.get(OBC.MeasurementUtils);
-
-    const convertedArea = utils.convertUnits(
-      area,
-      `${this.worldUnit}2` as convert.Area, // Input unit (world unit)
-      this.units as convert.Area, // Output unit (display unit)
-      this.rounding, // Precision
-    );
-
-    const convertedPerimeter = utils.convertUnits(
-      perimeter,
-      this.worldUnit as convert.Area, // Input unit (world unit)
-      "m" as convert.Area, // Output unit (display unit)
-      this.rounding, // Precision
-    );
 
     this._currentSelelection = {
-      perimeter: convertedPerimeter,
-      area: convertedArea,
+      perimeter,
+      area,
+      edges: result.edges,
     };
   }
 
@@ -425,11 +468,19 @@ export class FaceMeasurement
     const { center } = geometry.boundingSphere;
     const htmlText = newDimensionMark();
     // const formattedArea = Math.trunc(area * 100) / 100;
-    const formattedArea = area;
-    htmlText.textContent = `${formattedArea} ${this.units}`;
+
+    const utils = this.components.get(OBC.MeasurementUtils);
+    const convertedArea = utils.convertUnits(
+      area,
+      `${this.worldUnit}2` as convert.Area, // Input unit (world unit)
+      this.units as convert.Area, // Output unit (display unit)
+      this.rounding, // Precision
+    );
+    htmlText.textContent = `${convertedArea} ${this.units}`;
     const label = new Mark(this.world, htmlText);
     const labelObject = label.three;
     labelObject.position.copy(center);
+    label.three.renderOrder = 1;
     labelObject.element.style.backgroundColor = this._labelMarkColor;
     return label;
   }
@@ -481,12 +532,70 @@ export class FaceMeasurement
     return area;
   }
 
+  private addDimensionLine(start: THREE.Vector3, end: THREE.Vector3) {
+    if (!this.world) {
+      throw new Error("World is required to create a dimension line!");
+    }
+    const dimensionLine = new SimpleDimensionLine(this.components, this.world, {
+      start,
+      end,
+      lineMaterial: this.borderMaterial,
+      endpointElement: newDimensionMark(),
+    });
+
+    dimensionLine.toggleLabel();
+
+    return dimensionLine;
+  }
+
+  /**
+   * Sets the color of the border material and updates all dimension lines in the selection.
+   *
+   * @param color - The new color to apply to the border material as a THREE.Color instance or a string (e.g., "#FF0000").
+   * @throws {Error} If the color is not a valid hex string or a THREE.Color instance.
+   */
+  setBorderColor(color: THREE.Color | string): void {
+    // Validate the color parameter
+    if (typeof color === "string") {
+      if (!/^#[0-9A-F]{6}$/i.test(color)) {
+        throw new Error("Invalid color format. Must be a hex color string.");
+      }
+    } else if (!(color instanceof THREE.Color)) {
+      throw new Error(
+        "Invalid color. Must be a THREE.Color instance or a hex string.",
+      );
+    }
+
+    // Convert the color to a THREE.Color instance if it's a string
+    const newColor = typeof color === "string" ? new THREE.Color(color) : color;
+
+    // Update the border material's color
+    this.borderMaterial.color = newColor;
+    this.borderMaterial.needsUpdate = true; // Ensure the material updates in the scene
+
+    // Update the color of all dimension lines in the selection
+    for (const item of this.selection) {
+      for (const dimensionLine of item.dimensionLines) {
+        dimensionLine.setColors(`#${this.borderMaterial.color.getHexString()}`); // Ensure the material updates
+      }
+    }
+  }
+
+  /**
+   * Gets the current color of the border material.
+   *
+   * @returns The current border color as a THREE.Color instance.
+   */
+  getBorderColor(): THREE.Color {
+    return this.borderMaterial.color;
+  }
+
   /**
    * Sets the color of the label mark for all selections.
    *
    * @param color - The new color to apply to the label mark.as string ex: "#0000FF"
    */
-  setLabelMarkColor(color: string): void {
+  setLabelMarkerColor(color: string): void {
     if (!/^#[0-9A-F]{6}$/i.test(color)) {
       throw new Error("Invalid color format. Must be a hex color string.");
     }
@@ -503,7 +612,7 @@ export class FaceMeasurement
    *
    * @returns The current label mark color as a string.
    */
-  getLabelMarkColor(): string {
+  getLabelMarkerColor(): string {
     return this._labelMarkColor;
   }
 
@@ -591,60 +700,18 @@ export class FaceMeasurement
     const utils = this.components.get(OBC.MeasurementUtils);
 
     for (const item of this.selection) {
-      // Recalculate area and perimeter
-      const geometry = item.mesh.geometry;
-      const position = geometry.attributes.position.array as Float32Array;
-
-      let area = 0;
-      let perimeter = 0;
-      const areaTriangle = new THREE.Triangle();
-
-      for (let i = 0; i < position.length; i += 9) {
-        const p1 = new THREE.Vector3(
-          position[i],
-          position[i + 1],
-          position[i + 2],
-        );
-        const p2 = new THREE.Vector3(
-          position[i + 3],
-          position[i + 4],
-          position[i + 5],
-        );
-        const p3 = new THREE.Vector3(
-          position[i + 6],
-          position[i + 7],
-          position[i + 8],
-        );
-
-        areaTriangle.set(p1, p2, p3);
-        area += areaTriangle.getArea();
-
-        perimeter += p1.distanceTo(p2) + p2.distanceTo(p3) + p3.distanceTo(p1);
-      }
-
       // Convert area and perimeter to the current units
       const convertedArea = utils.convertUnits(
-        area,
+        item.area,
         `${this.worldUnit}2` as convert.Area,
         this.units as convert.Area,
         this.rounding,
       );
-
-      const convertedPerimeter = utils.convertUnits(
-        perimeter,
-        this.worldUnit as convert.Distance,
-        "m" as convert.Distance,
-        this.rounding,
-      );
-
-      // Update the item's area and perimeter
-      item.area = convertedArea;
-      item.perimeter = convertedPerimeter;
-
       // Update the label
       item.label.three.element.textContent = `${convertedArea.toFixed(this.rounding)} ${this.units}`;
     }
   }
+
   /**
    * Sets the world unit for the face measurement.
    *

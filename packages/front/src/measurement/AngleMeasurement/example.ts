@@ -147,6 +147,13 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
           }}">  
         </bim-checkbox>       
         
+        <bim-color-input 
+          label="Color" color="#0000ff" 
+          @input="${({ target }: { target: BUI.ColorInput }) => {
+            angles.setLineMaterialColor(target.color);
+          }}">
+        </bim-color-input>
+
         <bim-button label="Delete all"
           @click="${() => {
             angles.deleteAll();

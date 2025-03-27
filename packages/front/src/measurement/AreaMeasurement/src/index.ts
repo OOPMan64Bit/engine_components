@@ -62,7 +62,7 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
    * The mesh used to fill the area for visualization.
    * This mesh represents the filled area in the 3D scene.
    */
-  private fillMesh: THREE.Mesh | null = null;
+  public fillMesh: THREE.Mesh | null = null;
 
   // private scale: number = 1;
 
@@ -115,15 +115,23 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
         this.labelMarker.visible = true;
       }
     });
-    points?.forEach((point) => this.setPoint(point));
 
     // Initialize the mesh with an empty geometry
     this.fillMesh = new THREE.Mesh(new THREE.BufferGeometry(), fillmaterial);
     this.fillMesh.visible = false; // Initially hide the mesh
     this.world.scene.three.add(this.fillMesh); // Add the mesh to the scene
+
+    if (points) {
+      points.forEach((point) => this.setPoint(point, undefined, true));
+      if (points.length > 2) {
+        this.computeWorkingPlane();
+        this.computeArea();
+        this.updatePlaneMesh(this.fillMesh, points);
+      }
+    }
   }
 
-  setPoint(point: THREE.Vector3, index?: number) {
+  setPoint(point: THREE.Vector3, index?: number, init?: boolean) {
     let _index: number;
     if (!index) {
       _index = this.points.length === 0 ? 0 : this.points.length;
@@ -145,7 +153,7 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
     if (previousLine) previousLine.endPoint = point;
     if (nextLine) nextLine.startPoint = point;
 
-    this.updatePlaneMesh(this.fillMesh as THREE.Mesh, this.points);
+    if (!init) this.updatePlaneMesh(this.fillMesh as THREE.Mesh, this.points);
   }
 
   removePoint(index: number) {
@@ -349,7 +357,7 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
   /**
    * Updates a plane mesh by adding or removing a single vertex.
    * @param {THREE.Mesh} mesh - The existing plane mesh.
-   * @param {THREE.Vector3[]} updatedVertices - The updated vertices (one added or removed).
+   * @param {THREE.Vector3[]} updatedVertices - The updated vertices (one added or removed). world coordinates
    */
   updatePlaneMesh(mesh: THREE.Mesh, updatedVertices: THREE.Vector3[]): void {
     if (!mesh || !mesh.geometry) {
@@ -433,7 +441,33 @@ export class AreaMeasureElement implements OBC.Hideable, OBC.Disposable {
     geometry.setIndex(indices); // Update face indices
     geometry.computeVertexNormals(); // Recalculate normals for correct shading
     positionAttribute.needsUpdate = true; // Mark for update
-    mesh.position.copy(normal.setLength(0.01));
     mesh.visible = true; // Show the updated mesh
+
+    const cameraWorldPos = new THREE.Vector3();
+    const camera = this.world.camera.three;
+    camera.getWorldPosition(cameraWorldPos);
+
+    // Get the mesh's world position
+    const meshWorldPos = new THREE.Vector3(0, 0, 0);
+    // mesh.getWorldPosition(meshWorldPos);
+
+    // Get vector from mesh to camera in world space
+    const meshToCamera = new THREE.Vector3();
+    meshToCamera.subVectors(cameraWorldPos, meshWorldPos).normalize();
+
+    // Determine if the camera is in front or behind the mesh
+    const dotProduct = normal.dot(meshToCamera);
+    const direction = dotProduct > 0 ? 1 : -1;
+
+    const distance = 0.01;
+    // Move the mesh along the normal by distance * direction
+    const moveVector = normal.clone().multiplyScalar(distance * direction);
+
+    // Apply the movement in world space
+    meshWorldPos.add(moveVector);
+
+    // Update the mesh's world position correctly
+    mesh.position.copy(meshWorldPos);
+    // mesh.position.copy(moveVector);
   }
 }

@@ -99,7 +99,11 @@ export class AngleMeasurement
     this.components.add(AngleMeasurement.uuid, this);
     this._vertexPicker = new GraphicVertexPicker(components);
     this._lineMaterial = new LineMaterial({
-      color: 0x6528d7,
+      depthTest: false,
+      // color: 0x6528d7,
+      color: 0x0000ff,
+      transparent: true,
+      opacity: 0.8,
       linewidth: 2,
     });
   }
@@ -222,4 +226,44 @@ export class AngleMeasurement
       this.cancelCreation();
     }
   };
+
+  /**
+   * Sets the color of the line material used for angle measurement.
+   *
+   * @param color - The new color to apply to the line material as a THREE.Color instance or a string (e.g., "#FF0000").
+   * @throws {Error} If the color is not a valid hex string or a THREE.Color instance.
+   */
+  setLineMaterialColor(color: THREE.Color | string): void {
+    // Validate the color parameter
+    if (typeof color === "string") {
+      if (!/^#[0-9A-F]{6}$/i.test(color)) {
+        throw new Error("Invalid color format. Must be a hex color string.");
+      }
+    } else if (!(color instanceof THREE.Color)) {
+      throw new Error(
+        "Invalid color. Must be a THREE.Color instance or a hex string.",
+      );
+    }
+
+    // Convert the color to a THREE.Color instance if it's a string
+    const newColor = typeof color === "string" ? new THREE.Color(color) : color;
+
+    // Update the line material's color
+    this._lineMaterial.color = newColor;
+    this._lineMaterial.needsUpdate = true; // Ensure the material updates in the scene
+
+    // Update the material for all items in the list
+    for (const angleElement of this.list) {
+      angleElement.lineMaterial = this._lineMaterial;
+    }
+  }
+
+  /**
+   * Gets the current color of the line material used for angle measurement.
+   *
+   * @returns The current color of the line material as a THREE.Color instance.
+   */
+  getLineMaterialColor(): THREE.Color {
+    return this._lineMaterial.color;
+  }
 }

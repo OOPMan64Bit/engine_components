@@ -173,18 +173,12 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
             dimensions.enabled = target.value;
           }}"> 
         </bim-checkbox> 
-        
-        <bim-color-input 
-          label="Label Color" color="#0000ff" 
-          @input="${({ target }: { target: BUI.ColorInput }) => {
-            dimensions.setLabelMarkColor(target.color);
-          }}">
-        </bim-color-input>
 
         <bim-color-input 
-          label="Priview Color" color="#BCF124" 
+          label="Border&Label Color" color="#0000ff" 
           @input="${({ target }: { target: BUI.ColorInput }) => {
-            dimensions.setPreviewColor(target.color);
+            dimensions.setBorderColor(target.color);
+            dimensions.setLabelMarkerColor(target.color);
           }}">
         </bim-color-input>
 
@@ -192,6 +186,13 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
           label="Selection Color" color="#BCF124" 
           @input="${({ target }: { target: BUI.ColorInput }) => {
             dimensions.setSelectionColor(target.color);
+          }}">
+        </bim-color-input>
+
+        <bim-color-input 
+          label="Priview Color" color="#BCF124" 
+          @input="${({ target }: { target: BUI.ColorInput }) => {
+            dimensions.setPreviewColor(target.color);
           }}">
         </bim-color-input>
 

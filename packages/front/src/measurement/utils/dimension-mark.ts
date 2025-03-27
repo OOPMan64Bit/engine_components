@@ -11,15 +11,31 @@ export function newDimensionMark() {
   return mark;
 }
 
-export function newEndPoint() {
+export function newEndPoint(
+  option: {
+    color?: string;
+    size?: string;
+    border?: string;
+    background?: string;
+    font?: string;
+  } = {},
+): HTMLDivElement {
+  const {
+    color = "white",
+    size = "4px",
+    border = "2px solid blue",
+    background = "white",
+    font = "Sora",
+  } = option;
+
   const mark = document.createElement("div");
-  mark.style.backgroundColor = "white";
-  mark.style.color = "white";
-  mark.style.height = "7px";
-  mark.style.width = "7px";
+  mark.style.backgroundColor = background;
+  mark.style.color = color;
+  mark.style.height = size;
+  mark.style.width = size;
   mark.style.borderRadius = "50%";
-  mark.style.border = "2px solid blue";
-  mark.style.fontFamily = "Sora";
+  mark.style.border = border;
+  mark.style.fontFamily = font;
   mark.style.zIndex = "-20";
 
   return mark;

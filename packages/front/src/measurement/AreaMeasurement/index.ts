@@ -245,7 +245,7 @@ export class AreaMeasurement
       console.log("No world given for the area measurement!");
       return;
     }
-    const point = this._vertexPicker.get(this.world);
+    const point = this._vertexPicker.get(this.world); // world coordinates?
     if (!(point && this._currentAreaElement)) {
       return;
     }
