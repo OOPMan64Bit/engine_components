@@ -5,6 +5,7 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { Line2 } from "three/examples/jsm/lines/Line2.js";
 import { Mark } from "../../../core";
 import { newDimensionMark, newEndPoint } from "../../utils";
+import convert from "convert-units"; // Import the convert-units module
 
 interface Angle {
   points: THREE.Vector3[];
@@ -20,6 +21,13 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
   endPoints: Mark[] = [];
 
   world: OBC.World;
+
+  /**
+   * The current unit for angle measurement (e.g., "deg", "rad").
+   */
+  public units: "deg" | "rad" | "grad" | "arcmin" | "arcsec" = "deg";
+
+  public rounding: 0 | 1 | 2 | 3 | 4 | 5 = 2;
 
   readonly onDisposed = new OBC.Event();
 
@@ -84,7 +92,8 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     });
 
     this.onAngleComputed.add((angle) => {
-      this.labelMarker.three.element.textContent = `${angle.toFixed(2)}°`;
+      // this.labelMarker.three.element.textContent = `${angle.toFixed(2)}°`;
+      this.displayConvertedAngle(angle);
       this.labelMarker.three.position.copy(
         this.points[1] ?? new THREE.Vector3(),
       );
@@ -140,6 +149,13 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     this.onDisposed.reset();
   }
 
+  /**
+   * Updates or creates an endpoint marker for the specified index.
+   *
+   * @param index - The index of the endpoint to update or create (0, 1, or 2).
+   * @param point - The position of the endpoint as a THREE.Vector3.
+   *
+   */
   private updateEndpointElement(index: 0 | 1 | 2, point: THREE.Vector3) {
     if (!this.endPoints[index]) {
       // create
@@ -154,5 +170,72 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
       // update point
       this.endPoints[index].three.position.copy(point);
     }
+  }
+
+  static getSymbolFromUnit(newUnit: string) {
+    const validUnits: string[] = ["deg", "rad", "grad", "arcmin", "arcsec"];
+    if (!validUnits.includes(newUnit)) {
+      throw new Error(
+        `Invalid unit: ${newUnit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+    if (newUnit === "deg") return `°`;
+    if (newUnit === "rad") return `rad`;
+    if (newUnit === "grad") return `grad`;
+    if (newUnit === "arcmin") return `arcmin`;
+    if (newUnit === "arcsec") return `arcsec`;
+    return "";
+  }
+
+  displayConvertedAngle(degAng: number) {
+    // Validate the angle
+    if (typeof degAng !== "number" || Number.isNaN(degAng)) {
+      throw new Error("Invalid angle value. Must be a valid number.");
+    }
+    const convertedValue = convert(degAng).from("deg").to(this.units);
+    const factor = 10 ** this.rounding; // Use ** operator for precision
+    const convertedAngle = Math.round(convertedValue * factor) / factor; // Apply precision
+    this.labelMarker.three.element.textContent = `${convertedAngle}${AngleMeasureElement.getSymbolFromUnit(this.units)}`;
+  }
+
+  /**
+   * Sets the display units for the angle measurement element.
+   *
+   * @param unit - The new display unit ("deg" | "rad" | "grad" | "arcmin" | "arcsec").
+   */
+  setUnit(newUnit: string): void {
+    if (!this.world) {
+      throw new Error("World is required to change units!");
+    }
+
+    const validUnits: string[] = ["deg", "rad", "grad", "arcmin", "arcsec"];
+
+    if (!validUnits.includes(newUnit)) {
+      throw new Error(
+        `Invalid unit: ${newUnit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+
+    this.units = newUnit as convert.Angle;
+    const angle = this.computeAngle();
+    this.displayConvertedAngle(angle);
+  }
+
+  /**
+   * Sets the rounding precision for angle measurement element.
+   *
+   * @param rounding - The new rounding precision (0 to 5).
+   * @throws {Error} If the rounding value is not a valid number between 0 and 5.
+   */
+  setRounding(rounding: 0 | 1 | 2 | 3 | 4 | 5): void {
+    if (typeof rounding !== "number" || rounding < 0 || rounding > 5) {
+      throw new Error(
+        "Invalid rounding value. Must be a number between 0 and 5.",
+      );
+    }
+
+    this.rounding = rounding;
+    const angle = this.computeAngle();
+    this.displayConvertedAngle(angle);
   }
 }

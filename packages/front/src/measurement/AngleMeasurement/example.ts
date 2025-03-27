@@ -139,20 +139,45 @@ const panel = BUI.Component.create<BUI.PanelSection>(() => {
           <bim-label>Create angle: Double click</bim-label>  
           <bim-label>Delete angle: Delete</bim-label>  
       </bim-panel-section>
-      
+
       <bim-panel-section collapsed label="Others">
         <bim-checkbox checked label="angles enabled" 
           @change="${({ target }: { target: BUI.Checkbox }) => {
             angles.enabled = target.value;
           }}">  
-        </bim-checkbox>       
-        
+        </bim-checkbox>
+
         <bim-color-input 
           label="Color" color="#0000ff" 
           @input="${({ target }: { target: BUI.ColorInput }) => {
             angles.setLineMaterialColor(target.color);
           }}">
         </bim-color-input>
+
+        <bim-dropdown 
+          label="Display unit" required
+          @change="${({ target }: { target: BUI.Dropdown }) => {
+            angles.setUnit(target.value[0]);
+          }}">
+          <bim-option label="deg" value="deg" checked></bim-option>
+          <bim-option label="rad" value="rad"></bim-option>
+          <bim-option label="grad" value="grad"></bim-option>
+          <bim-option label="arcmin" value="arcmin"></bim-option>
+          <bim-option label="arcsec" value="arcsec"></bim-option>
+        </bim-dropdown>
+
+        <bim-dropdown 
+          label="Select pricision" required
+          @change="${({ target }: { target: BUI.Dropdown }) => {
+            angles.setRounding(target.value[0]);
+          }}">
+          <bim-option label="0" value=0></bim-option>
+          <bim-option label="1" value=1></bim-option>
+          <bim-option label="2" value=2 checked></bim-option>
+          <bim-option label="3" value=3></bim-option>
+          <bim-option label="4" value=4></bim-option>
+          <bim-option label="5" value=5></bim-option>
+        </bim-dropdown>
 
         <bim-button label="Delete all"
           @click="${() => {

@@ -3,6 +3,7 @@ import * as OBC from "@thatopen/components";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { AngleMeasureElement } from "./src";
 import { GraphicVertexPicker } from "../../utils";
+import convert from "convert-units"; // Import the convert-units module
 
 // TODO: Make appearance customizable?
 
@@ -42,6 +43,12 @@ export class AngleMeasurement
   private _currentAngleElement: AngleMeasureElement | null = null;
 
   private _clickCount: number = 0;
+
+  /**
+   * The current unit for angle measurement (e.g., "deg", "rad").
+   */
+  private units: "deg" | "rad" | "grad" | "arcmin" | "arcsec" = "deg";
+  private rounding: 0 | 1 | 2 | 3 | 4 | 5 = 2;
 
   /** {@link OBC.Component.enabled} */
   get enabled() {
@@ -138,6 +145,9 @@ export class AngleMeasurement
     if (!this._currentAngleElement) {
       const angleElement = new AngleMeasureElement(this.world);
       angleElement.lineMaterial = this.lineMaterial;
+      angleElement.units = this.units;
+      angleElement.rounding = this.rounding;
+
       // angleElement.onPointRemoved.on(() => this._clickCount--);
       this._currentAngleElement = angleElement;
     }
@@ -265,5 +275,69 @@ export class AngleMeasurement
    */
   getLineMaterialColor(): THREE.Color {
     return this._lineMaterial.color;
+  }
+
+  /**
+   * Sets the display units for the angle measurement.
+   *
+   * @param unit - The new display unit ("deg" | "rad" | "grad" | "arcmin" | "arcsec").
+   */
+  setUnit(newUnit: string): void {
+    if (!this.world) {
+      throw new Error("World is required to change units!");
+    }
+
+    const validUnits: string[] = ["deg", "rad", "grad", "arcmin", "arcsec"];
+
+    if (!validUnits.includes(newUnit)) {
+      throw new Error(
+        `Invalid unit: ${newUnit}. Must be one of ${validUnits.join(", ")}.`,
+      );
+    }
+
+    this.units = newUnit as convert.Angle;
+
+    // Update the units for AreaMeasurement
+    this.list.forEach((dimension) => {
+      dimension.setUnit(this.units);
+    });
+
+    if (this._currentAngleElement) {
+      this._currentAngleElement.setUnit(this.units);
+    }
+  }
+
+  /**
+   * Gets the current display unit for the angle measurement.
+   *
+   * @returns The current display unit as a string ("deg" | "rad" | "grad" | "arcmin" | "arcsec").
+   */
+  getUnit(): "deg" | "rad" | "grad" | "arcmin" | "arcsec" {
+    return this.units;
+  }
+
+  /**
+   * Sets the rounding precision for angle measurements.
+   *
+   * @param rounding - The new rounding precision (0 to 5).
+   * @throws {Error} If the rounding value is not a valid number between 0 and 5.
+   */
+  setRounding(rounding: 0 | 1 | 2 | 3 | 4 | 5): void {
+    if (typeof rounding !== "number" || rounding < 0 || rounding > 5) {
+      throw new Error(
+        "Invalid rounding value. Must be a number between 0 and 5.",
+      );
+    }
+
+    this.rounding = rounding;
+
+    // Update the rounding for all angle measurement elements
+    this.list.forEach((angleElement) => {
+      angleElement.setRounding(rounding);
+    });
+
+    if (this._currentAngleElement) {
+      this._currentAngleElement.setRounding(rounding);
+    }
   }
 }
