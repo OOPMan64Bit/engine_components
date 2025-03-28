@@ -144,7 +144,6 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     });
 
     this._lineGeometry.setPositions(points.flat());
-    // this._lineGeometry.setFromPoints(this.points);
     // this._lineGeometry.attributes.position.needsUpdate = true;
     // this._line.geometry.instanceCount = this.points.length;
     // this._lineGeometry.setDrawRange(0, this.points.length);
