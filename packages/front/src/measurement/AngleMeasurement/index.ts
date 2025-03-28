@@ -151,16 +151,12 @@ export class AngleMeasurement
       // angleElement.onPointRemoved.on(() => this._clickCount--);
       this._currentAngleElement = angleElement;
     }
+    // call before setPoint
+    this._currentAngleElement.onSetNewPoint.trigger({
+      index: this._clickCount,
+      point,
+    });
     this._currentAngleElement.setPoint(point, this._clickCount as 0 | 1 | 2);
-    this._currentAngleElement.setPoint(
-      point,
-      (this._clickCount + 1) as 0 | 1 | 2,
-    );
-    this._currentAngleElement.setPoint(
-      point,
-      (this._clickCount + 2) as 0 | 1 | 2,
-    );
-    this._currentAngleElement.computeAngle();
     this._clickCount++;
     if (this._clickCount === 3) this.endCreation();
   };
