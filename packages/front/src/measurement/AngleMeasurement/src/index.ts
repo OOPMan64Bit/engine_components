@@ -37,13 +37,15 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
   });
 
   private _lineGeometry = new LineGeometry();
-
   private _line = new Line2(this._lineGeometry, this._lineMaterial);
+
+  private _arcGeometry = new LineGeometry();
+  private _arc = new Line2(this._arcGeometry, this._lineMaterial);
 
   private _labelMarker: Mark;
 
   readonly onAngleComputed = new OBC.Event<number>();
-  readonly onPointAdded = new OBC.Event();
+  readonly onSetNewPoint = new OBC.Event();
 
   set lineMaterial(material: LineMaterial) {
     this._lineMaterial.dispose();
@@ -84,20 +86,35 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     const htmlText = newDimensionMark();
     this._labelMarker = new Mark(world, htmlText);
     this._labelMarker.three.renderOrder = 1;
-    this.labelMarker.visible = true;
+    this.labelMarker.visible = false;
+    this.world.scene.three.add(this._line);
+    this._line.visible = true;
+    world.scene.three.add(this._arc);
+    this._arc.visible = false;
 
-    this.onPointAdded.add(() => {
-      if (this.points.length === 1) world.scene.three.add(this._line);
-      if (this.points.length === 3) this.labelMarker.visible = true;
+    this.onSetNewPoint.add((data) => {
+      // Type assertion to enforce expected structure
+      const { index, point } = data as { index: number; point: THREE.Vector3 };
+      if (index === 0) {
+        this.points[0] = point;
+        this.points[1] = point;
+        this.points[2] = point;
+        this.endPoints[index] = this.createEndpointElement(point);
+      }
+      if (index === 1) {
+        this.points[1] = point;
+        this.points[2] = point;
+        this.labelMarker.visible = true;
+        this.labelMarker.three.position.copy(point);
+        const angle = this.computeAngle();
+        this.displayConvertedAngle(angle);
+      }
+      if (index === 2) {
+        this.endPoints[index] = this.createEndpointElement(point);
+      }
     });
 
-    this.onAngleComputed.add((angle) => {
-      // this.labelMarker.three.element.textContent = `${angle.toFixed(2)}°`;
-      this.displayConvertedAngle(angle);
-      this.labelMarker.three.position.copy(
-        this.points[1] ?? new THREE.Vector3(),
-      );
-    });
+    this.onAngleComputed.add(() => {});
 
     points?.forEach((point) => this.setPoint(point));
   }
@@ -110,13 +127,31 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
       _index = index;
     }
     if (![0, 1, 2].includes(_index)) return;
+
     this.points[_index] = point;
-    this.updateEndpointElement(_index as 0 | 1 | 2, point);
-    this.onPointAdded.trigger(point);
+
+    if (_index > 1) {
+      // create funct
+      const angle = this.computeAngle();
+      this.displayConvertedAngle(angle);
+    }
+
+    // update point
+    // this.endPoints[_index].three.position.copy(point);
+    // this.DrawArc3D();
+
     const points = this.points.map((point) => {
       return [point.x, point.y, point.z];
     });
+
     this._lineGeometry.setPositions(points.flat());
+    // this._lineGeometry.setFromPoints(this.points);
+    // this._lineGeometry.attributes.position.needsUpdate = true;
+    // this._line.geometry.instanceCount = this.points.length;
+    // this._lineGeometry.setDrawRange(0, this.points.length);
+    // this._line.computeLineDistances();
+    // this._lineGeometry.computeBoundingBox();
+    // this._lineGeometry.computeBoundingSphere();
   }
 
   toggleLabel() {
@@ -140,36 +175,31 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     this.labelMarker.dispose();
     this.endPoints.forEach((item) => item.dispose());
     this.onAngleComputed.reset();
-    this.onPointAdded.reset();
+    this.onSetNewPoint.reset();
     this.labelMarker.dispose();
     this._line.removeFromParent();
     this._lineMaterial.dispose();
     this._lineGeometry.dispose();
+    this._arcGeometry.dispose();
+    this._arc.removeFromParent();
     this.onDisposed.trigger();
     this.onDisposed.reset();
   }
 
   /**
-   * Updates or creates an endpoint marker for the specified index.
+   * Creates an endpoint marker
    *
-   * @param index - The index of the endpoint to update or create (0, 1, or 2).
    * @param point - The position of the endpoint as a THREE.Vector3.
+   * @param index - The index of the endpoint to create (0, 1, or 2).
    *
    */
-  private updateEndpointElement(index: 0 | 1 | 2, point: THREE.Vector3) {
-    if (!this.endPoints[index]) {
-      // create
-      const marker = new Mark(this.world, newEndPoint());
-      marker.three.position.copy(point);
-      this.endPoints[index] = marker;
-      marker.three.element.style.backgroundColor = `#${this._lineMaterial.color.getHexString()}`;
-      marker.three.element.style.borderColor = `#${this._lineMaterial.color.getHexString()}`;
-      marker.three.renderOrder = 0;
-      marker.visible = true;
-    } else {
-      // update point
-      this.endPoints[index].three.position.copy(point);
-    }
+  private createEndpointElement(point: THREE.Vector3) {
+    const marker = new Mark(this.world, newEndPoint());
+    marker.three.position.copy(point);
+    marker.three.element.style.backgroundColor = `#${this._lineMaterial.color.getHexString()}`;
+    marker.three.element.style.borderColor = `#${this._lineMaterial.color.getHexString()}`;
+    marker.three.renderOrder = 0;
+    return marker;
   }
 
   static getSymbolFromUnit(newUnit: string) {
@@ -182,8 +212,8 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     if (newUnit === "deg") return `°`;
     if (newUnit === "rad") return `rad`;
     if (newUnit === "grad") return `grad`;
-    if (newUnit === "arcmin") return `arcmin`;
-    if (newUnit === "arcsec") return `arcsec`;
+    if (newUnit === "arcmin") return `′`;
+    if (newUnit === "arcsec") return `″`;
     return "";
   }
 
@@ -237,5 +267,60 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     this.rounding = rounding;
     const angle = this.computeAngle();
     this.displayConvertedAngle(angle);
+  }
+
+  /**
+   * Creates a smooth arc (bow) between two radius vectors in 3D space.
+   */
+  DrawArc3D(): void {
+    const v0 = this.points[0];
+    const v1 = this.points[1];
+    const v2 = this.points[2];
+    if (!(v0 && v1 && v2)) {
+      this._arc.visible = false;
+      return;
+    }
+    console.log("draw3d", this.points);
+
+    const segments = 20;
+    const r = 0.5;
+    // Normalize start & end vectors
+    const startNorm = v0.clone().subVectors(v0, v1).normalize();
+    const endNorm = v2.clone().subVectors(v2, v1).normalize();
+
+    // Find center of the arc (assuming a circular path)
+    // const center = v1;
+
+    // Compute the normal axis to rotate around
+    const normal = new THREE.Vector3()
+      .crossVectors(startNorm, endNorm)
+      .normalize();
+
+    // Calculate the angle between start and end vectors
+    let angle = startNorm.angleTo(endNorm);
+
+    // Ensure the arc is ≤ 180° by flipping endVector if necessary
+    if (angle > Math.PI) {
+      angle = Math.PI - (angle - Math.PI); // Adjust angle to take the shorter path
+      endNorm.negate(); // Flip end vector direction
+    }
+
+    // Generate arc points
+    const points: THREE.Vector3[] = [];
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments; // Normalized position between 0 and 1
+      const theta = angle * t; // Interpolated angle
+
+      // Rotate start vector around the normal axis
+      const point = startNorm
+        .clone()
+        .applyAxisAngle(normal, theta)
+        .multiplyScalar(r);
+      points.push(point);
+    }
+
+    // Create a Three.js curve geometry from the points
+    this._arcGeometry.setFromPoints(points);
+    this._arc.visible = true;
   }
 }
