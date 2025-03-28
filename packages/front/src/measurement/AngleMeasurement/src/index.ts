@@ -51,6 +51,7 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     this._lineMaterial.dispose();
     this._lineMaterial = material;
     this._line.material = material;
+    this._arc.material = material;
     this._lineMaterial.resolution.set(window.innerWidth, window.innerHeight);
     if (this._labelMarker)
       this._labelMarker.three.element.style.backgroundColor = `#${material.color.getHexString()}`;
@@ -90,7 +91,7 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     this.world.scene.three.add(this._line);
     this._line.visible = true;
     world.scene.three.add(this._arc);
-    this._arc.visible = false;
+    this._arc.visible = true;
 
     this.onSetNewPoint.add((data) => {
       // Type assertion to enforce expected structure
@@ -131,14 +132,12 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     this.points[_index] = point;
 
     if (_index > 1) {
-      // create funct
       const angle = this.computeAngle();
       this.displayConvertedAngle(angle);
     }
 
     // update point
     // this.endPoints[_index].three.position.copy(point);
-    // this.DrawArc3D();
 
     const points = this.points.map((point) => {
       return [point.x, point.y, point.z];
@@ -152,6 +151,8 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     // this._line.computeLineDistances();
     // this._lineGeometry.computeBoundingBox();
     // this._lineGeometry.computeBoundingSphere();
+
+    this.DrawArc3D(_index);
   }
 
   toggleLabel() {
@@ -272,24 +273,29 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
   /**
    * Creates a smooth arc (bow) between two radius vectors in 3D space.
    */
-  DrawArc3D(): void {
+  DrawArc3D(index: number): void {
     const v0 = this.points[0];
     const v1 = this.points[1];
     const v2 = this.points[2];
-    if (!(v0 && v1 && v2)) {
-      this._arc.visible = false;
-      return;
-    }
-    console.log("draw3d", this.points);
+    // if (!(v0 && v1 && v2)) {
+    //   this._arc.visible = false;
+    //   return;
+    // }
+    if (index < 2) return;
 
-    const segments = 20;
-    const r = 0.5;
+    const segments = 20; // smooth enough
+
     // Normalize start & end vectors
     const startNorm = v0.clone().subVectors(v0, v1).normalize();
     const endNorm = v2.clone().subVectors(v2, v1).normalize();
 
+    // Calculate the length of the shorter vector and set r to 20% of it
+    const startLength = v0.clone().sub(v1).length();
+    const endLength = v2.clone().sub(v1).length();
+    const r = Math.min(0.9 * Math.min(startLength, endLength), 0.4);
+
     // Find center of the arc (assuming a circular path)
-    // const center = v1;
+    const center = v1;
 
     // Compute the normal axis to rotate around
     const normal = new THREE.Vector3()
@@ -306,7 +312,7 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
     }
 
     // Generate arc points
-    const points: THREE.Vector3[] = [];
+    const points: number[] = [];
     for (let i = 0; i <= segments; i++) {
       const t = i / segments; // Normalized position between 0 and 1
       const theta = angle * t; // Interpolated angle
@@ -315,12 +321,11 @@ export class AngleMeasureElement implements OBC.Hideable, OBC.Disposable {
       const point = startNorm
         .clone()
         .applyAxisAngle(normal, theta)
-        .multiplyScalar(r);
-      points.push(point);
+        .multiplyScalar(r)
+        .add(center);
+      points.push(point.x, point.y, point.z);
     }
-
     // Create a Three.js curve geometry from the points
-    this._arcGeometry.setFromPoints(points);
-    this._arc.visible = true;
+    this._arcGeometry.setPositions(points);
   }
 }
